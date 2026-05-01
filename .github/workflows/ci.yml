@@ -2,9 +2,10 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop, dev ]
+    branches: [ main, dev, 'release/**', 'hotfix/**', 'feature/**', 'fix/**' ]
   pull_request:
-    branches: [ main, develop, dev ]
+    branches: [ main, dev, 'release/**', 'hotfix/**' ]
+    types: [ opened, synchronize, reopened ]
 
 jobs:
   build-and-test:
@@ -20,6 +21,15 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '6.x'
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
 
       - name: Setup .NET 10
         uses: actions/setup-dotnet@v4
@@ -37,7 +47,11 @@ jobs:
         run: dotnet restore
 
       - name: Build
-        run: dotnet build --no-restore -c Release
+        run: >
+          dotnet build --no-restore -c Release
+          /p:Version=${{ steps.gitversion.outputs.semVer }}
+          /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }}
+          /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }}
 
       - name: Test (unit, no integration)
         run: >

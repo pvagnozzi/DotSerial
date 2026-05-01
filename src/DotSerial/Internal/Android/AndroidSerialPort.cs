@@ -99,7 +99,7 @@ internal sealed class AndroidSerialPort : SerialPortBase
         ThrowIfDisposed();
         if (_isOpen) return;
 
-        _logger.LogInformation("Opening Android USB serial port '{PortName}'.", PortName);
+        _logger.UsbOpening(PortName);
 
         _usbManager = (UsbManager)global::Android.App.Application.Context
             .GetSystemService(global::Android.Content.Context.UsbService)!;
@@ -127,7 +127,7 @@ internal sealed class AndroidSerialPort : SerialPortBase
         _isOpen = true;
 
         StartPolling();
-        _logger.LogInformation("USB serial port '{PortName}' opened successfully.", PortName);
+        _logger.UsbOpened(PortName);
     }
 
     /// <inheritdoc/>
@@ -141,12 +141,12 @@ internal sealed class AndroidSerialPort : SerialPortBase
     public override void Close()
     {
         if (!_isOpen) return;
-        _logger.LogInformation("Closing Android USB serial port '{PortName}'.", PortName);
+        _logger.UsbClosing(PortName);
         StopPolling();
         _connection?.Close();
         _connection = null;
         _isOpen = false;
-        _logger.LogInformation("USB serial port '{PortName}' closed.", PortName);
+        _logger.UsbClosed(PortName);
     }
 
     /// <inheritdoc/>
@@ -160,7 +160,7 @@ internal sealed class AndroidSerialPort : SerialPortBase
     {
         ArgumentNullException.ThrowIfNull(buffer);
         ThrowIfNotOpen();
-        _logger.LogTrace("Writing {Count} byte(s) to USB serial port '{PortName}'.", count, PortName);
+        _logger.UsbWritingBytes(count, PortName);
         var data = new byte[count];
         Buffer.BlockCopy(buffer, offset, data, 0, count);
         int transferred = _connection!.BulkTransfer(_bulkOut, data, count, WriteTimeout);
@@ -177,7 +177,7 @@ internal sealed class AndroidSerialPort : SerialPortBase
         int n = _connection!.BulkTransfer(_bulkIn, tmp, count, ReadTimeout);
         if (n < 0) return 0;
         Buffer.BlockCopy(tmp, 0, buffer, offset, n);
-        _logger.LogTrace("Read {Count} byte(s) from USB serial port '{PortName}'.", n, PortName);
+        _logger.UsbReadBytes(n, PortName);
         return n;
     }
 
@@ -373,7 +373,7 @@ internal sealed class AndroidSerialPort : SerialPortBase
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Error in USB poll loop for '{PortName}'.", PortName);
+                _logger.UsbPollError(ex, PortName);
             }
 
             if (!ct.IsCancellationRequested)

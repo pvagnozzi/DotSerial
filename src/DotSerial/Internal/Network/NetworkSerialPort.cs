@@ -160,7 +160,7 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
     public void Open()
     {
         ThrowIfDisposed();
-        _logger.LogInformation("Connecting to TCP serial bridge {Host}:{Port}.", _host, _tcpPort);
+        _logger.Connecting(_host, _tcpPort);
 
         var client = new TcpClient();
         try
@@ -175,14 +175,14 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
                 $"Failed to connect to TCP serial bridge '{_host}:{_tcpPort}': {ex.Message}", ex);
         }
 
-        _logger.LogInformation("Connected to TCP serial bridge {Host}:{Port}.", _host, _tcpPort);
+        _logger.Connected(_host, _tcpPort);
     }
 
     /// <inheritdoc/>
     public async Task OpenAsync(CancellationToken cancellationToken = default)
     {
         ThrowIfDisposed();
-        _logger.LogInformation("Connecting to TCP serial bridge {Host}:{Port}.", _host, _tcpPort);
+        _logger.Connecting(_host, _tcpPort);
 
         var client = new TcpClient();
         try
@@ -197,7 +197,7 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
                 $"Failed to connect to TCP serial bridge '{_host}:{_tcpPort}': {ex.Message}", ex);
         }
 
-        _logger.LogInformation("Connected to TCP serial bridge {Host}:{Port}.", _host, _tcpPort);
+        _logger.Connected(_host, _tcpPort);
     }
 
     /// <inheritdoc/>
@@ -207,7 +207,7 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         _stream = null;
         _client?.Close();
         _client = null;
-        _logger.LogInformation("Disconnected from TCP serial bridge {Host}:{Port}.", _host, _tcpPort);
+        _logger.Disconnected(_host, _tcpPort);
     }
 
     /// <inheritdoc/>
@@ -225,7 +225,7 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
     {
         ThrowIfDisposed();
         ThrowIfNotOpen();
-        _logger.LogTrace("Writing {Count} bytes to {Host}:{Port}.", count, _host, _tcpPort);
+        _logger.WritingBytes(count, _host, _tcpPort);
         _stream!.Write(buffer, offset, count);
     }
 
@@ -405,7 +405,7 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         _client?.Dispose();
         _stream = null;
         _client = null;
-        _logger.LogDebug("NetworkSerialPort {Host}:{Port} disposed.", _host, _tcpPort);
+        _logger.PortDisposed(_host, _tcpPort);
     }
 
     /// <inheritdoc/>

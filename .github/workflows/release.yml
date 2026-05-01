@@ -1,0 +1,176 @@
+name: Release
+
+on:
+  pull_request:
+    branches: [ main, dev ]
+    types: [ closed ]
+
+jobs:
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 1 — Build every TFM on the correct host OS.
+  #
+  #   macos-latest   → net10.0 + net10.0-android + net10.0-ios  (all 3 TFMs)
+  #   ubuntu-latest  → net10.0 + net10.0-android                (cross-check)
+  #   windows-latest → net10.0 + net10.0-android                (cross-check)
+  #
+  # Only macOS can build net10.0-ios (Xcode required).
+  # The macOS build artifacts are used for the final NuGet pack.
+  # ─────────────────────────────────────────────────────────────────────────
+  build:
+    name: Build (${{ matrix.os }})
+    if: github.event.pull_request.merged == true
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
+
+    permissions:
+      contents: read
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '6.x'
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install .NET workloads (Android — all platforms)
+        run: dotnet workload install android
+
+      - name: Install .NET workloads (iOS — macOS only)
+        if: matrix.os == 'macos-latest'
+        run: dotnet workload install ios
+
+      - name: Restore
+        run: dotnet restore
+
+      - name: Build
+        run: >
+          dotnet build --no-restore -c Release
+          /p:Version=${{ steps.gitversion.outputs.semVer }}
+          /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }}
+          /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }}
+
+      - name: Test (unit)
+        run: >
+          dotnet test tests/DotSerial.Tests.Unit
+          --no-build -c Release
+          --logger "trx;LogFileName=unit-results-${{ matrix.os }}.trx"
+
+      - name: Upload test results
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results-${{ matrix.os }}
+          path: '**/*.trx'
+
+      # Only keep the macOS build output — it contains all 3 TFMs and is used
+      # by the pack job.
+      - name: Upload build output (macOS only)
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-output-macos
+          path: src/DotSerial/bin/Release/
+
+  # ─────────────────────────────────────────────────────────────────────────
+  # Job 2 — Pack, tag, publish.
+  # Runs on macOS so `dotnet pack` can reference the full multi-TFM output.
+  # ─────────────────────────────────────────────────────────────────────────
+  release:
+    name: Pack, Tag & Publish
+    needs: build
+    runs-on: macos-latest
+
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup GitVersion
+        uses: gittools/actions/gitversion/setup@v3
+        with:
+          versionSpec: '6.x'
+
+      - name: Determine version
+        id: gitversion
+        uses: gittools/actions/gitversion/execute@v3
+
+      - name: Setup .NET 10
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.0.x'
+
+      - name: Install .NET workloads (Android + iOS)
+        run: |
+          dotnet workload install android
+          dotnet workload install ios
+
+      - name: Restore
+        run: dotnet restore
+
+      # Rebuild on macOS to get all three TFMs in a clean environment.
+      - name: Build (all TFMs)
+        run: >
+          dotnet build src/DotSerial --no-restore -c Release
+          /p:Version=${{ steps.gitversion.outputs.semVer }}
+          /p:AssemblyVersion=${{ steps.gitversion.outputs.assemblySemVer }}
+          /p:FileVersion=${{ steps.gitversion.outputs.assemblySemFileVer }}
+
+      - name: Pack NuGet (net10.0 + net10.0-android + net10.0-ios)
+        run: >
+          dotnet pack src/DotSerial -c Release --no-build
+          /p:Version=${{ steps.gitversion.outputs.semVer }}
+          /p:PackageVersion=${{ steps.gitversion.outputs.nuGetVersionV2 }}
+          -o ./artifacts
+
+      - name: List artifacts
+        run: ls -lh ./artifacts
+
+      - name: Create and push git tag
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git tag "v${{ steps.gitversion.outputs.semVer }}"
+          git push origin "v${{ steps.gitversion.outputs.semVer }}"
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v${{ steps.gitversion.outputs.semVer }}
+          name: v${{ steps.gitversion.outputs.semVer }}
+          prerelease: ${{ github.base_ref != 'main' }}
+          generate_release_notes: true
+          files: |
+            ./artifacts/*.nupkg
+            ./artifacts/*.snupkg
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      # NuGet publish only for main (stable) and dev (prerelease).
+      - name: Push to NuGet.org
+        if: github.base_ref == 'main' || github.base_ref == 'dev'
+        run: >
+          dotnet nuget push ./artifacts/*.nupkg
+          --api-key ${{ secrets.NUGET_API_KEY }}
+          --source https://api.nuget.org/v3/index.json
+          --skip-duplicate
+

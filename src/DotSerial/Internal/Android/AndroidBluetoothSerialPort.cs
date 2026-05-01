@@ -92,8 +92,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
         if (_isOpen) return;
 
         string macAddress = _settings.BluetoothAddress ?? _settings.PortName;
-        _logger.LogInformation(
-            "Opening Android Bluetooth SPP serial port to '{MacAddress}'.", macAddress);
+        _logger.BtOpening(macAddress);
 
         BluetoothAdapter adapter = GetBluetoothAdapter()
             ?? throw new Exceptions.SerialPortException("Bluetooth adapter not available.");
@@ -136,8 +135,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
         _isOpen = true;
 
         StartPolling();
-        _logger.LogInformation(
-            "Bluetooth RFCOMM serial port to '{MacAddress}' opened.", macAddress);
+        _logger.BtOpened(macAddress);
     }
 
     /// <inheritdoc/>
@@ -152,9 +150,9 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
     {
         if (!_isOpen) return;
         string macAddress = _settings.BluetoothAddress ?? _settings.PortName;
-        _logger.LogInformation("Closing Bluetooth RFCOMM serial port to '{MacAddress}'.", macAddress);
+        _logger.BtClosing(macAddress);
         StopPolling();
-        try { _socket?.Close(); } catch (Java.IO.IOException ex) { _logger.LogError(ex, "Error closing Bluetooth socket."); }
+        try { _socket?.Close(); } catch (Java.IO.IOException ex) { _logger.BtCloseError(ex); }
         _socket = null;
         _inputStream = null;
         _outputStream = null;
@@ -172,7 +170,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
     {
         ArgumentNullException.ThrowIfNull(buffer);
         ThrowIfNotOpen();
-        _logger.LogTrace("Writing {Count} byte(s) to Bluetooth serial port.", count);
+        _logger.BtWritingBytes(count);
         try
         {
             _outputStream!.Write(buffer, offset, count);
@@ -191,7 +189,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
         try
         {
             int n = _inputStream!.Read(buffer, offset, count);
-            _logger.LogTrace("Read {Count} byte(s) from Bluetooth serial port.", n);
+            _logger.BtReadBytes(n);
             return n;
         }
         catch (Java.IO.IOException ex)
@@ -260,7 +258,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {
-                _logger.LogError(ex, "Error in Bluetooth poll loop.");
+                _logger.BtPollError(ex);
             }
 
             if (!ct.IsCancellationRequested)

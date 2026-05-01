@@ -102,7 +102,7 @@ internal sealed partial class LinuxSerialPortMonitor : Abstractions.ISerialPortM
             _byIdWatcher.Deleted += OnDeviceChanged;
         }
 
-        _logger.LogInformation("Linux serial port monitor started (watching /dev/tty*).");
+        _logger.MonitorStarted();
     }
 
     /// <inheritdoc/>
@@ -121,7 +121,7 @@ internal sealed partial class LinuxSerialPortMonitor : Abstractions.ISerialPortM
             return;
         }
 
-        _logger.LogInformation("Linux serial port monitor stopping.");
+        _logger.MonitorStopping();
 
         _devWatcher.EnableRaisingEvents = false;
         _devWatcher.Dispose();
@@ -170,10 +170,7 @@ internal sealed partial class LinuxSerialPortMonitor : Abstractions.ISerialPortM
         }
 
         _currentPorts = newPorts;
-        _logger.LogInformation(
-            "Linux serial ports changed — added: [{Added}], removed: [{Removed}].",
-            string.Join(", ", added),
-            string.Join(", ", removed));
+        _logger.MonitorPortsChanged(string.Join(", ", added), string.Join(", ", removed));
 
         RaisePortsChanged(added, removed, newPorts);
     }
@@ -208,7 +205,7 @@ internal sealed partial class LinuxSerialPortMonitor : Abstractions.ISerialPortM
         foreach (var d in handler.GetInvocationList().Cast<EventHandler<Models.PortsChangedEventArgs>>())
         {
             try { d.Invoke(this, args); }
-            catch (Exception ex) { _logger.LogError(ex, "Exception in PortsChanged subscriber."); }
+            catch (Exception ex) { _logger.MonitorSubscriberError(ex); }
         }
     }
 

@@ -78,9 +78,7 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
         _cts = new CancellationTokenSource();
         _monitorTask = RunMonitorLoopAsync(_cts.Token);
 
-        _logger.LogInformation(
-            "Serial port monitor started (polling every {Interval} ms).",
-            _pollingInterval.TotalMilliseconds);
+        _logger.MonitorStarted(_pollingInterval.TotalMilliseconds);
     }
 
     /// <inheritdoc/>
@@ -96,7 +94,7 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
     {
         if (_cts is null) return;
 
-        _logger.LogInformation("Serial port monitor stopping.");
+        _logger.MonitorStopping();
         _cts.Cancel();
         _cts.Dispose();
         _cts = null;
@@ -135,10 +133,7 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
                 {
                     _currentPorts = newPorts;
 
-                    _logger.LogInformation(
-                        "Serial ports changed — added: [{Added}], removed: [{Removed}].",
-                        string.Join(", ", added),
-                        string.Join(", ", removed));
+                    _logger.MonitorPortsChanged(string.Join(", ", added), string.Join(", ", removed));
 
                     RaisePortsChanged(added, removed, newPorts);
                 }
@@ -149,11 +144,11 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Unhandled error during serial port monitor poll.");
+                _logger.MonitorPollError(ex);
             }
         }
 
-        _logger.LogInformation("Serial port monitor stopped.");
+        _logger.MonitorStopped();
     }
 
     // ── Helpers ───────────────────────────────────────────────────────────
@@ -185,7 +180,7 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
             }
             catch (Exception ex)
             {
-                _logger.LogError(ex, "Exception in PortsChanged subscriber.");
+                _logger.MonitorSubscriberError(ex);
             }
         }
     }

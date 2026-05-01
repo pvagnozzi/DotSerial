@@ -86,7 +86,7 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
         _watcher.Deleted += OnDeviceChanged;
         _watcher.EnableRaisingEvents = true;
 
-        _logger.LogInformation("macOS serial port monitor started (watching /dev/cu.*).");
+        _logger.MonitorStarted();
     }
 
     /// <inheritdoc/>
@@ -105,7 +105,7 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
             return;
         }
 
-        _logger.LogInformation("macOS serial port monitor stopping.");
+        _logger.MonitorStopping();
 
         _watcher.EnableRaisingEvents = false;
         _watcher.Dispose();
@@ -147,10 +147,7 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
         }
 
         _currentPorts = newPorts;
-        _logger.LogInformation(
-            "macOS serial ports changed — added: [{Added}], removed: [{Removed}].",
-            string.Join(", ", added),
-            string.Join(", ", removed));
+        _logger.MonitorPortsChanged(string.Join(", ", added), string.Join(", ", removed));
 
         RaisePortsChanged(added, removed, newPorts);
     }
@@ -188,7 +185,7 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
         foreach (var d in handler.GetInvocationList().Cast<EventHandler<Models.PortsChangedEventArgs>>())
         {
             try { d.Invoke(this, args); }
-            catch (Exception ex) { _logger.LogError(ex, "Exception in PortsChanged subscriber."); }
+            catch (Exception ex) { _logger.MonitorSubscriberError(ex); }
         }
     }
 

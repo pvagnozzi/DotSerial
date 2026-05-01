@@ -92,7 +92,7 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
     public void Open()
     {
         ThrowIfDisposed();
-        _logger.LogInformation("Opening serial port {PortName} at {BaudRate} bps.", PortName, BaudRate);
+        _logger.PortOpening(PortName, BaudRate);
         try { _inner.Open(); }
         catch (System.IO.FileNotFoundException ex)
         {
@@ -108,7 +108,7 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
         {
             throw new Exceptions.SerialPortTimeoutException($"Timeout opening port '{PortName}'.", ex);
         }
-        _logger.LogInformation("Serial port {PortName} opened successfully.", PortName);
+        _logger.PortOpened(PortName);
     }
 
     /// <inheritdoc/>
@@ -124,7 +124,7 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
     {
         if (_inner.IsOpen)
         {
-            _logger.LogInformation("Closing serial port {PortName}.", PortName);
+            _logger.PortClosing(PortName);
             _inner.Close();
         }
     }
@@ -142,7 +142,7 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
     {
         ThrowIfDisposed();
         ThrowIfNotOpen();
-        _logger.LogTrace("Writing {Count} bytes to {PortName}.", count, PortName);
+        _logger.WritingBytes(count, PortName);
         try { _inner.Write(buffer, offset, count); }
         catch (TimeoutException ex) { throw new Exceptions.SerialPortTimeoutException("Write timed out.", ex); }
     }
@@ -152,7 +152,7 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
     {
         ThrowIfDisposed();
         ThrowIfNotOpen();
-        _logger.LogTrace("Writing string ({Length} chars) to {PortName}.", text.Length, PortName);
+        _logger.WritingString(text.Length, PortName);
         try { _inner.Write(text); }
         catch (TimeoutException ex) { throw new Exceptions.SerialPortTimeoutException("Write timed out.", ex); }
     }
@@ -305,7 +305,7 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
         }
 
         _inner.Dispose();
-        _logger.LogDebug("Serial port {PortName} disposed.", PortName);
+        _logger.PortDisposed(PortName);
     }
 
     /// <inheritdoc/>

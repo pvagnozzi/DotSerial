@@ -31,7 +31,6 @@ desktop.ini
 
 # dotnet tools
 .dotnet/
-.config/
 
 # Coverage
 coverage/
