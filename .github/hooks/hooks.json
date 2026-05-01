@@ -1,0 +1,32 @@
+{
+  "version": 1,
+  "hooks": {
+    "sessionStart": [
+      {
+        "type": "command",
+        "bash": "printf '\\n\\033[36m⚙️  DotSerial session started.\\n   Build: dotnet build\\n   Test:  dotnet test tests/DotSerial.Tests.Unit\\n   Note:  TreatWarningsAsErrors=true — zero warnings required\\033[0m\\n'",
+        "powershell": "Write-Host \"`n⚙️  DotSerial session started.`n   Build: dotnet build`n   Test:  dotnet test tests/DotSerial.Tests.Unit`n   Note:  TreatWarningsAsErrors=true — zero warnings required`n\" -ForegroundColor Cyan",
+        "cwd": ".",
+        "timeoutSec": 5
+      }
+    ],
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": ".github/hooks/scripts/guard-csproj.sh",
+        "powershell": ".github/hooks/scripts/guard-csproj.ps1",
+        "cwd": ".",
+        "timeoutSec": 5
+      }
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": ".github/hooks/scripts/check-header.sh",
+        "powershell": ".github/hooks/scripts/check-header.ps1",
+        "cwd": ".",
+        "timeoutSec": 10
+      }
+    ]
+  }
+}

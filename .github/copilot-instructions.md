@@ -41,13 +41,20 @@ DotSerial.Abstractions   → ISerialPort, ISerialPortFactory, ISerialPortMonitor
 DotSerial.Enums          → BaudRate, DataBits, Parity, StopBits, FlowControl, SerialError, SerialPinChange, SerialData, ConnectionType
 DotSerial.Models         → SerialPortSettings (immutable record), event args, PortsChangedEventArgs
 DotSerial.Exceptions     → SerialPortException (base), SerialPortNotFoundException, SerialPortTimeoutException
-DotSerial.Internal       → Platform implementations (internal visibility)
-  ├── Desktop            → DesktopSerialPort, DesktopSerialPortMonitor  (Condition net10.0)
+DotSerial.Internal       → Platform implementations (all internal visibility)
+  ├── SerialPortBase     → Abstract base class — all platform impls except NetworkSerialPort extend this
+  ├── Desktop            → DesktopSerialPort (Condition net10.0)
+  ├── Linux              → LinuxSerialPortMonitor (Condition net10.0, OS-specific at runtime)
+  ├── MacOS              → MacOSSerialPortMonitor (Condition net10.0, OS-specific at runtime)
+  ├── Network            → NetworkSerialPort (all platforms; implements ISerialPort directly, not via SerialPortBase)
   ├── Android            → AndroidSerialPort, AndroidBluetoothSerialPort (Condition net10.0-android)
-  └── iOS                → iOSSerialPort, iOSBluetoothSerialPort         (Condition net10.0-ios)
+  └── iOS                → iOSSerialPort, iOSBluetoothSerialPort (Condition net10.0-ios)
 DotSerial.Decorators     → ThrottledSerialPort (platform-agnostic write-rate limiter, wraps any ISerialPort)
+DotSerial.Streams        → SerialPortStreamWrapper (wraps ISerialPort as ISerialPortStream)
 DotSerial                → SerialPortFactory, ServiceCollectionExtensions
 ```
+
+`SerialPortFactory.CreateMonitor()` selects the monitor at runtime: `LinuxSerialPortMonitor` on Linux, `MacOSSerialPortMonitor` on macOS, and the polling `DesktopSerialPortMonitor` on Windows. The `CreateStream()` method wraps any `ISerialPort` in `SerialPortStreamWrapper`.
 
 ## File Header Requirement
 
@@ -86,21 +93,27 @@ Every `.cs` file MUST start with:
 
 ## Platform Preprocessor Symbols
 
-- `NET10_0` — desktop only (Windows, Linux, macOS) — bare net10.0 TFM
-- `NET10_0_ANDROID` — Android only
-- `NET10_0_IOS` — iOS only
+The csproj uses `<Compile Remove>` with MSBuild `Condition` attributes (preferred) to exclude platform-specific files:
+- `Condition="'$(TargetFramework)' == 'net10.0'"` — desktop only (Windows, Linux, macOS)
+- `Condition="'$(TargetFramework)' == 'net10.0-android'"` — Android only
+- `Condition="'$(TargetFramework)' == 'net10.0-ios'"` — iOS only
 
-The `#if NET10_0` correctly excludes Android/iOS because those TFMs define `NET10_0_ANDROID`/`NET10_0_IOS` but NOT `NET10_0`.
-However, the csproj uses `<Compile Remove>` with MSBuild `Condition` attributes (preferred) instead of `#if` guards.
+For **inline `#if` guards** in files that compile across all TFMs (e.g., `SerialPortFactory.cs`), use:
+- `#if ANDROID` — Android only
+- `#if IOS` — iOS only
+- The `else` branch covers desktop (net10.0)
+
+Do NOT use `NET10_0_ANDROID`/`NET10_0_IOS` in `#if` guards — the correct runtime symbols are `ANDROID` and `IOS`.
 
 ## ConnectionType and Bluetooth
 
 `SerialPortSettings` has a `ConnectionType` property (`Serial` default, `Bluetooth`, `Network`) and an optional `BluetoothAddress`.
 
-- **Desktop**: only `ConnectionType.Serial` is supported; `Bluetooth` throws `PlatformNotSupportedException`.
+- **Desktop**: only `ConnectionType.Serial` and `ConnectionType.Network` are supported; `Bluetooth` throws `PlatformNotSupportedException`.
 - **Android Bluetooth**: set `ConnectionType = Bluetooth`, `BluetoothAddress = "00:11:22:33:44:55"` (MAC), `PortName = device name`.
 - **iOS Bluetooth**: set `ConnectionType = Bluetooth`, `BluetoothAddress = CBPeripheral UUID`, uses NUS BLE profile.
-- `Validate()` enforces `BluetoothAddress` is non-empty when `ConnectionType == Bluetooth`.
+- **Network (all platforms)**: set `ConnectionType = Network`, `PortName = "host:port"` (e.g., `"192.168.1.100:4001"`). Serial line settings in `SerialPortSettings` are stored for reference only; configure them on the network serial server device.
+- `Validate()` enforces `BluetoothAddress` is non-empty when `ConnectionType == Bluetooth`, and that `PortName` is `"host:port"` when `ConnectionType == Network`.
 
 ## ThrottledSerialPort Decorator
 
@@ -125,6 +138,8 @@ DI: `services.AddDotSerial().AddDotSerialMonitor();`
 
 ## NSubstitute Patterns for Tests
 
+The test framework is **NUnit 4** + **NSubstitute 5**. Use `[TestFixture]`/`[SetUp]`/`[TearDown]`/`[Test]` attributes. Test files also carry the standard copyright header.
+
 ```csharp
 // For logger factory, use NullLoggerFactory (simplest approach)
 using Microsoft.Extensions.Logging.Abstractions;
@@ -140,6 +155,8 @@ var factory = Substitute.For<ISerialPortFactory>();
 factory.Create(Arg.Any<SerialPortSettings>()).Returns(port);
 ```
 
+The test project uses `InternalsVisibleTo("DotSerial.Tests.Unit")` (declared in the main csproj) so internal types can be tested directly.
+
 ## Project Conventions
 
 - **Nullable reference types** enabled — handle nullability explicitly
@@ -148,3 +165,14 @@ factory.Create(Arg.Any<SerialPortSettings>()).Returns(port);
 - All public APIs require XML doc comments (`<summary>`, `<param>`, `<returns>`, `<exception>`)
 - Use `ArgumentNullException.ThrowIfNull()` for null checks
 - Use `ConfigureAwait(false)` on all `await` calls in library code
+
+## Versioning
+
+Versioning is managed by **MinVer** from the nearest git tag with `v` prefix (e.g., `v1.2.0`). Pre-release builds use the identifier `preview`. Do not manually set `<Version>` in csproj.
+
+## Branch and Commit Conventions
+
+Branch naming: `feature/xxx`, `fix/xxx`, `chore/xxx`
+
+Commit messages follow [Conventional Commits](https://www.conventionalcommits.org/):
+- `feat:`, `fix:`, `docs:`, `chore:`, `test:`, `refactor:`

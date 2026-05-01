@@ -103,14 +103,14 @@ public sealed class NetworkSerialPortTests
             PortName = "127.0.0.1:59998",
             ConnectionType = ConnectionType.Network,
         });
-        Assert.Throws<Exceptions.SerialPortException>(() => port.Open());
+        Assert.Throws<SerialPortException>(() => port.Open());
     }
 
     [Test]
     public void Write_WhenNotConnected_ThrowsSerialPortException()
     {
         using var port = _factory.Create(ValidNetworkSettings());
-        Assert.Throws<Exceptions.SerialPortException>(() =>
+        Assert.Throws<SerialPortException>(() =>
             port.Write(new byte[] { 1, 2 }, 0, 2));
     }
 
@@ -118,14 +118,14 @@ public sealed class NetworkSerialPortTests
     public void ReadByte_WhenNotConnected_ThrowsSerialPortException()
     {
         using var port = _factory.Create(ValidNetworkSettings());
-        Assert.Throws<Exceptions.SerialPortException>(() => port.ReadByte());
+        Assert.Throws<SerialPortException>(() => port.ReadByte());
     }
 
     [Test]
     public void BaseStream_WhenNotConnected_ThrowsSerialPortException()
     {
         using var port = _factory.Create(ValidNetworkSettings());
-        Assert.Throws<Exceptions.SerialPortException>(() => _ = port.BaseStream);
+        Assert.Throws<SerialPortException>(() => _ = port.BaseStream);
     }
 
     // ── Timeout mutability ────────────────────────────────────────────────

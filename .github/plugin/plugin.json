@@ -1,0 +1,28 @@
+{
+  "name": "dotserial",
+  "description": "Complete GitHub Copilot toolkit for DotSerial contributors. Bundles specialized agents, skills, and instructions for implementing features, porting platforms, writing tests, managing releases, and debugging CI in the DotSerial cross-platform .NET serial port library.",
+  "version": "1.0.0",
+  "keywords": ["dotnet", "csharp", "serial-port", "cross-platform", "net10", "nuget"],
+  "author": {
+    "name": "Piergiorgio Vagnozzi"
+  },
+  "repository": "https://github.com/pvagnozzi/DotSerial",
+  "license": "MIT",
+  "agents": [
+    "./.github/agents/dotnet-implementer.agent.md",
+    "./.github/agents/platform-porter.agent.md",
+    "./.github/agents/test-author.agent.md",
+    "./.github/agents/changelog-author.agent.md",
+    "./.github/agents/code-reviewer.agent.md",
+    "./.github/agents/release-manager.agent.md"
+  ],
+  "commands": [],
+  "skills": [
+    "./.github/skills/dotnet-build-test/",
+    "./.github/skills/nuget-pack/",
+    "./.github/skills/add-copyright-header/",
+    "./.github/skills/conventional-commit/",
+    "./.github/skills/ci-debug/",
+    "./.github/skills/new-platform-impl/"
+  ]
+}
