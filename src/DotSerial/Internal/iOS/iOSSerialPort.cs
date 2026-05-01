@@ -82,7 +82,7 @@ internal sealed class iOSSerialPort : SerialPortBase
         ThrowIfDisposed();
         if (_isOpen) return;
 
-        _logger.LogInformation("Opening iOS External Accessory serial port '{PortName}'.", PortName);
+        _logger.EaOpening(PortName);
 
         var manager = EAAccessoryManager.SharedAccessoryManager;
         var accessories = manager.ConnectedAccessories;
@@ -131,7 +131,7 @@ internal sealed class iOSSerialPort : SerialPortBase
         _baseStream = new EASerialStream(_inputStream, _outputStream);
         _isOpen = true;
 
-        _logger.LogInformation("iOS External Accessory serial port '{PortName}' opened.", PortName);
+        _logger.EaOpened(PortName);
     }
 
     /// <inheritdoc/>
@@ -145,7 +145,7 @@ internal sealed class iOSSerialPort : SerialPortBase
     public override void Close()
     {
         if (!_isOpen) return;
-        _logger.LogInformation("Closing iOS External Accessory serial port '{PortName}'.", PortName);
+        _logger.EaClosing(PortName);
 
         if (_inputStream is not null)
         {
@@ -160,7 +160,7 @@ internal sealed class iOSSerialPort : SerialPortBase
         _baseStream = null;
         _isOpen = false;
 
-        _logger.LogInformation("iOS External Accessory serial port '{PortName}' closed.", PortName);
+        _logger.EaClosed(PortName);
     }
 
     /// <inheritdoc/>
@@ -174,7 +174,7 @@ internal sealed class iOSSerialPort : SerialPortBase
     {
         ArgumentNullException.ThrowIfNull(buffer);
         ThrowIfNotOpen();
-        _logger.LogTrace("Writing {Count} byte(s) to EA serial port '{PortName}'.", count, PortName);
+        _logger.EaWritingBytes(count, PortName);
         nint written = _outputStream!.Write(buffer, offset, (nuint)count);
         if (written < 0)
             throw new Exceptions.SerialPortException(
@@ -187,7 +187,7 @@ internal sealed class iOSSerialPort : SerialPortBase
         ArgumentNullException.ThrowIfNull(buffer);
         ThrowIfNotOpen();
         int n = (int)_inputStream!.Read(buffer, offset, (nuint)count);
-        _logger.LogTrace("Read {Count} byte(s) from EA serial port '{PortName}'.", n, PortName);
+        _logger.EaReadBytes(n, PortName);
         return Math.Max(0, n);
     }
 

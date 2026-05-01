@@ -281,7 +281,10 @@ public sealed class ThrottledSerialPort : Abstractions.ISerialPort
     /// <param name="byteCount">Number of bytes about to be written.</param>
     private void ThrottleSync(int byteCount)
     {
-        if (byteCount <= 0) return;
+        if (byteCount <= 0)
+        {
+            return;
+        }
 
         _bucketLock.Wait();
         try
@@ -289,9 +292,7 @@ public sealed class ThrottledSerialPort : Abstractions.ISerialPort
             var delayMs = ComputeDelayAndConsumeTokens(byteCount);
             if (delayMs > 0)
             {
-                _logger.LogTrace(
-                    "Throttling write of {Bytes} B on {Port} — sleeping {Ms} ms.",
-                    byteCount, PortName, delayMs);
+                _logger.ThrottlingSync(byteCount, PortName, delayMs);
                 Thread.Sleep(delayMs);
             }
         }
@@ -309,7 +310,10 @@ public sealed class ThrottledSerialPort : Abstractions.ISerialPort
     /// <param name="cancellationToken">Token to cancel the wait.</param>
     private async Task ThrottleAsync(int byteCount, CancellationToken cancellationToken)
     {
-        if (byteCount <= 0) return;
+        if (byteCount <= 0)
+        {
+            return;
+        }
 
         await _bucketLock.WaitAsync(cancellationToken).ConfigureAwait(false);
         try
@@ -317,9 +321,7 @@ public sealed class ThrottledSerialPort : Abstractions.ISerialPort
             var delayMs = ComputeDelayAndConsumeTokens(byteCount);
             if (delayMs > 0)
             {
-                _logger.LogTrace(
-                    "Throttling async write of {Bytes} B on {Port} — delaying {Ms} ms.",
-                    byteCount, PortName, delayMs);
+                _logger.ThrottlingAsync(byteCount, PortName, delayMs);
                 await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
             }
         }
@@ -363,6 +365,9 @@ public sealed class ThrottledSerialPort : Abstractions.ISerialPort
     /// <summary>Throws <see cref="ObjectDisposedException"/> if this instance has been disposed.</summary>
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(ThrottledSerialPort));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(ThrottledSerialPort));
+        }
     }
 }

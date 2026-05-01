@@ -59,17 +59,27 @@
   <!-- Exclude platform-specific files from wrong targets -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
     <Compile Remove="Internal\Desktop\DesktopSerialPort.cs" />
+    <Compile Remove="Internal\Desktop\DesktopSerialPortLog.cs" />
     <Compile Remove="Internal\Desktop\DesktopSerialPortMonitor.cs" />
+    <Compile Remove="Internal\Desktop\DesktopSerialPortMonitorLog.cs" />
     <Compile Remove="Internal\Linux\LinuxSerialPortMonitor.cs" />
+    <Compile Remove="Internal\Linux\LinuxSerialPortMonitorLog.cs" />
     <Compile Remove="Internal\MacOS\MacOSSerialPortMonitor.cs" />
+    <Compile Remove="Internal\MacOS\MacOSSerialPortMonitorLog.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-android'">
     <Compile Remove="Internal\Android\AndroidSerialPort.cs" />
     <Compile Remove="Internal\Android\AndroidBluetoothSerialPort.cs" />
+    <Compile Remove="Internal\Android\AndroidSerialPortLog.cs" />
+    <Compile Remove="Internal\Android\AndroidSerialPortMonitor.cs" />
+    <Compile Remove="Internal\Android\AndroidSerialPortMonitorLog.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-ios'">
     <Compile Remove="Internal\iOS\iOSSerialPort.cs" />
     <Compile Remove="Internal\iOS\iOSBluetoothSerialPort.cs" />
+    <Compile Remove="Internal\iOS\iOSSerialPortLog.cs" />
+    <Compile Remove="Internal\iOS\iOSSerialPortMonitor.cs" />
+    <Compile Remove="Internal\iOS\iOSSerialPortMonitorLog.cs" />
   </ItemGroup>
 
 </Project>

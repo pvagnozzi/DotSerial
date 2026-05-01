@@ -109,8 +109,7 @@ internal sealed class iOSBluetoothSerialPort : SerialPortBase
         if (_isOpen) return;
 
         string peripheralUuid = _settings.BluetoothAddress ?? _settings.PortName;
-        _logger.LogInformation(
-            "Opening iOS CoreBluetooth NUS serial port to peripheral '{Uuid}'.", peripheralUuid);
+        _logger.BleOpening(peripheralUuid);
 
         // ── Step 1: Power-on wait ─────────────────────────────────────────
         var powerOnTcs = new TaskCompletionSource<bool>();
@@ -154,30 +153,29 @@ internal sealed class iOSBluetoothSerialPort : SerialPortBase
         _baseStream = new BleNusStream(_peripheral, _rxCharacteristic, _receiveChannel.Reader, this);
         _isOpen = true;
 
-        _logger.LogInformation(
-            "iOS CoreBluetooth NUS serial port to '{Uuid}' opened.", peripheralUuid);
+        _logger.BleOpened(peripheralUuid);
     }
 
     /// <inheritdoc/>
     public override void Close()
     {
         if (!_isOpen) return;
-        _logger.LogInformation("Closing iOS CoreBluetooth NUS serial port.");
+        _logger.BleClosing();
 
         if (_peripheral is not null && _txCharacteristic is not null)
         {
             try { _peripheral.SetNotifyValue(false, _txCharacteristic); }
-            catch (Exception ex) { _logger.LogError(ex, "Error disabling TX notification."); }
+            catch (Exception ex) { _logger.BleTxNotifyError(ex); }
         }
 
         if (_peripheral is not null)
         {
             try { _central?.CancelPeripheralConnection(_peripheral); }
-            catch (Exception ex) { _logger.LogError(ex, "Error cancelling BLE connection."); }
+            catch (Exception ex) { _logger.BleCancelError(ex); }
         }
 
         _isOpen = false;
-        _logger.LogInformation("iOS CoreBluetooth NUS serial port closed.");
+        _logger.BleClosed();
     }
 
     /// <inheritdoc/>
@@ -191,7 +189,7 @@ internal sealed class iOSBluetoothSerialPort : SerialPortBase
     {
         ArgumentNullException.ThrowIfNull(buffer);
         ThrowIfNotOpen();
-        _logger.LogTrace("Writing {Count} byte(s) via BLE NUS RX.", count);
+        _logger.BleWritingBytes(count);
         var data = new byte[count];
         Buffer.BlockCopy(buffer, offset, data, 0, count);
         var nsData = NSData.FromArray(data);
@@ -209,7 +207,7 @@ internal sealed class iOSBluetoothSerialPort : SerialPortBase
         {
             int toCopy = Math.Min(count, chunk.Length);
             Buffer.BlockCopy(chunk, 0, buffer, offset, toCopy);
-            _logger.LogTrace("Read {Count} byte(s) from BLE NUS channel.", toCopy);
+            _logger.BleReadBytes(toCopy);
             return toCopy;
         }
         return 0;
@@ -267,7 +265,7 @@ internal sealed class iOSBluetoothSerialPort : SerialPortBase
     /// <param name="message">The error message.</param>
     internal void OnBleError(string message)
     {
-        _logger.LogError("BLE error: {Message}", message);
+        _logger.BleError(message);
         OnErrorReceived(new Models.SerialErrorReceivedEventArgs(Enums.SerialError.Frame));
     }
 

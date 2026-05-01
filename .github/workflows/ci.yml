@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [ main, dev, 'release/**', 'hotfix/**' ]
+    branches: [ main, dev, 'release/**', 'hotfix/**', 'feature/**', 'fix/**' ]
   pull_request:
     branches: [ main, dev, 'release/**', 'hotfix/**' ]
     types: [ opened, synchronize, reopened ]

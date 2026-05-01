@@ -78,8 +78,24 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
     /// <inheritdoc/>
     public IReadOnlyList<string> GetPortNames()
     {
-#if ANDROID || IOS
-        throw new PlatformNotSupportedException("GetPortNames is not supported on this platform.");
+#if ANDROID
+        var usbManager = global::Android.App.Application.Context
+            .GetSystemService(global::Android.Content.Context.UsbService)
+            as global::Android.Hardware.Usb.UsbManager;
+
+        var devices = usbManager?.DeviceList;
+        if (devices is null || devices.Count == 0)
+        {
+            return Array.Empty<string>();
+        }
+
+        return devices.Values
+            .OrderBy(d => d.DeviceName, StringComparer.Ordinal)
+            .Select((_, i) => $"USB{i}")
+            .ToList()
+            .AsReadOnly();
+#elif IOS
+        throw new PlatformNotSupportedException("GetPortNames is not supported on iOS.");
 #else
         return System.IO.Ports.SerialPort.GetPortNames();
 #endif
@@ -88,8 +104,12 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
     /// <inheritdoc/>
     public Abstractions.ISerialPortMonitor CreateMonitor(TimeSpan? pollingInterval = null)
     {
-#if ANDROID || IOS
-        throw new PlatformNotSupportedException("Serial port monitoring is not supported on this platform.");
+#if ANDROID
+        return new Internal.Android.AndroidSerialPortMonitor(
+            _loggerFactory.CreateLogger<Internal.Android.AndroidSerialPortMonitor>());
+#elif IOS
+        return new Internal.iOS.iOSSerialPortMonitor(
+            _loggerFactory.CreateLogger<Internal.iOS.iOSSerialPortMonitor>());
 #else
         var interval = pollingInterval ?? TimeSpan.FromSeconds(1);
         if (interval <= TimeSpan.Zero)
