@@ -1,0 +1,62 @@
+# GitVersion.yml — DotSerial versioning strategy
+#
+# Branch model:
+#   main          → stable releases  (1.2.3)
+#   dev           → next release     (1.2.3-preview.N)
+#   feature/*     → in-flight work   (1.2.3-alpha.N)
+#   hotfix/*      → urgent patches   (1.2.3-hotfix.N)
+#   pull-request/ → CI builds        (1.2.3-pr-NN.N)
+#
+# Version bumping via conventional commit prefixes:
+#   feat:         → minor bump
+#   fix: / chore: → patch bump
+#   BREAKING CHANGE or +semver:major → major bump
+
+assembly-versioning-scheme: MajorMinorPatch
+assembly-file-versioning-scheme: MajorMinorPatch
+tag-prefix: 'v'
+commit-message-incrementing: Enabled
+major-version-bump-message: '\+semver:\s?(breaking|major)'
+minor-version-bump-message: '(feat|feature)(\(.+\))?!?:'
+patch-version-bump-message: '(fix|refactor|perf|chore)(\(.+\))?!?:'
+no-bump-message: '(docs|style|test|build|ci)(\(.+\))?!?:'
+
+branches:
+  main:
+    label: ''
+    increment: Patch
+    regex: ^main$
+    source-branches: ['dev', 'release', 'hotfix']
+    is-release-branch: true
+    prevent-increment:
+      of-merged-branch: false
+      when-branch-merged: false
+
+  dev:
+    label: 'preview'
+    increment: Minor
+    regex: ^dev(elop)?(ment)?$
+    source-branches: ['main']
+    prevent-increment:
+      of-merged-branch: false
+
+  feature:
+    label: 'alpha'
+    regex: ^feature[/-](?<BranchName>.+)$
+    increment: Inherit
+    source-branches: ['dev', 'main', 'develop']
+    prevent-increment:
+      of-merged-branch: true
+
+  hotfix:
+    label: 'hotfix'
+    regex: ^hotfix[/-](?<BranchName>.+)$
+    increment: Patch
+    source-branches: ['main']
+    is-release-branch: true
+
+  pull-request:
+    label: 'pr-{Number}'
+    regex: ^(pull|pull[-\/]request|pr)[/-]\d+$
+    increment: Inherit
+    source-branches: ['dev', 'feature', 'hotfix', 'main']
