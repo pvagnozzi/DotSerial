@@ -13,12 +13,10 @@
 namespace DotSerial.Models;
 
 /// <summary>Provides data for the <see cref="Abstractions.ISerialPort.PinChanged"/> event.</summary>
-public sealed class SerialPinChangedEventArgs : EventArgs
+/// <remarks>Initializes a new instance with the specified pin-change type.</remarks>
+/// <param name="eventType">The type of pin change that occurred.</param>
+public sealed class SerialPinChangedEventArgs(Enums.SerialPinChange eventType) : EventArgs
 {
-    /// <summary>Initializes a new instance with the specified pin-change type.</summary>
-    /// <param name="eventType">The type of pin change that occurred.</param>
-    public SerialPinChangedEventArgs(Enums.SerialPinChange eventType) => EventType = eventType;
-
     /// <summary>Gets the type of pin change that occurred.</summary>
-    public Enums.SerialPinChange EventType { get; }
+    public Enums.SerialPinChange EventType { get; } = eventType;
 }

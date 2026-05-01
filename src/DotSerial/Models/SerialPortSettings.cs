@@ -73,18 +73,36 @@ public sealed record SerialPortSettings
     public void Validate()
     {
         if (string.IsNullOrWhiteSpace(PortName))
+        {
             throw new Exceptions.SerialPortException("PortName must not be null or empty.");
+        }
+
         if (BaudRate <= 0)
+        {
             throw new Exceptions.SerialPortException($"BaudRate must be positive; got {BaudRate}.");
+        }
+
         if (DataBits is < 5 or > 8)
+        {
             throw new Exceptions.SerialPortException($"DataBits must be between 5 and 8; got {DataBits}.");
+        }
+
         if (ReadTimeout < -1)
+        {
             throw new Exceptions.SerialPortException($"ReadTimeout must be -1 (infinite) or a positive value; got {ReadTimeout}.");
+        }
+
         if (WriteTimeout < -1)
+        {
             throw new Exceptions.SerialPortException($"WriteTimeout must be -1 (infinite) or a positive value; got {WriteTimeout}.");
+        }
+
         if (ConnectionType == Enums.ConnectionType.Bluetooth && string.IsNullOrWhiteSpace(BluetoothAddress))
+        {
             throw new Exceptions.SerialPortException(
                 "BluetoothAddress must not be null or empty when ConnectionType is Bluetooth.");
+        }
+
         if (ConnectionType == Enums.ConnectionType.Network)
         {
             var colonIndex = PortName.LastIndexOf(':');

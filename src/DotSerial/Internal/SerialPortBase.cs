@@ -189,7 +189,11 @@ internal abstract class SerialPortBase : Abstractions.ISerialPort
     {
         ThrowIfNotOpen();
         int available = BytesToRead;
-        if (available <= 0) return string.Empty;
+        if (available <= 0)
+        {
+            return string.Empty;
+        }
+
         var buffer = new byte[available];
         int read = Read(buffer, 0, available);
         return Encoding.GetString(buffer, 0, read);
@@ -206,14 +210,22 @@ internal abstract class SerialPortBase : Abstractions.ISerialPort
     public string ReadTo(string value)
     {
         ArgumentNullException.ThrowIfNull(value);
-        if (value.Length == 0) throw new ArgumentException("Value must not be empty.", nameof(value));
+        if (value.Length == 0)
+        {
+            throw new ArgumentException("Value must not be empty.", nameof(value));
+        }
+
         ThrowIfNotOpen();
 
         var sb = new System.Text.StringBuilder();
         while (true)
         {
             int b = ReadByte();
-            if (b == -1) break;
+            if (b == -1)
+            {
+                break;
+            }
+
             sb.Append((char)b);
             if (sb.Length >= value.Length &&
                 sb.ToString(sb.Length - value.Length, value.Length) == value)
@@ -267,14 +279,19 @@ internal abstract class SerialPortBase : Abstractions.ISerialPort
     /// <summary>Throws <see cref="ObjectDisposedException"/> when this instance has been disposed.</summary>
     protected void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(GetType().Name);
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(GetType().Name);
+        }
     }
 
     /// <summary>Throws <see cref="Exceptions.SerialPortException"/> when the port is not open.</summary>
     protected void ThrowIfNotOpen()
     {
         if (!IsOpen)
+        {
             throw new Exceptions.SerialPortException($"Serial port '{PortName}' is not open.");
+        }
     }
 
     // ── IDisposable / IAsyncDisposable ────────────────────────────────────
@@ -282,7 +299,11 @@ internal abstract class SerialPortBase : Abstractions.ISerialPort
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         DisposeManaged();
         GC.SuppressFinalize(this);
@@ -291,7 +312,11 @@ internal abstract class SerialPortBase : Abstractions.ISerialPort
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         await DisposeAsyncCore().ConfigureAwait(false);
         GC.SuppressFinalize(this);

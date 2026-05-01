@@ -266,10 +266,16 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
         while (!cancellationToken.IsCancellationRequested)
         {
             int read = await _inner.BaseStream.ReadAsync(buf.AsMemory(0, 1), cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
+            if (read == 0)
+            {
+                break;
+            }
+
             sb.Append((char)buf[0]);
             if (sb.ToString().EndsWith(newLine, StringComparison.Ordinal))
+            {
                 return sb.ToString(0, sb.Length - newLine.Length);
+            }
         }
         cancellationToken.ThrowIfCancellationRequested();
         return sb.ToString();
@@ -277,18 +283,27 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
 
     /// <inheritdoc/>
     public void DiscardInBuffer() { ThrowIfDisposed(); _inner.DiscardInBuffer(); }
+
     /// <inheritdoc/>
     public void DiscardOutBuffer() { ThrowIfDisposed(); _inner.DiscardOutBuffer(); }
 
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         _inner.DataReceived -= OnDataReceived;
         _inner.ErrorReceived -= OnErrorReceived;
         _inner.PinChanged -= OnPinChanged;
-        if (_inner.IsOpen) _inner.Close();
+        if (_inner.IsOpen)
+        {
+            _inner.Close();
+        }
+
         _inner.Dispose();
         _logger.LogDebug("Serial port {PortName} disposed.", PortName);
     }
@@ -302,13 +317,18 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
 
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(DesktopSerialPort));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(DesktopSerialPort));
+        }
     }
 
     private void ThrowIfNotOpen()
     {
         if (!_inner.IsOpen)
+        {
             throw new Exceptions.SerialPortException($"Serial port '{PortName}' is not open.");
+        }
     }
 
     private void OnDataReceived(object sender, SysIO.SerialDataReceivedEventArgs e)

@@ -31,10 +31,10 @@ using Microsoft.Extensions.Logging;
 /// throws <see cref="PlatformNotSupportedException"/>.
 /// </para>
 /// </remarks>
-internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
+internal sealed partial class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
 {
     private static readonly Regex TtyPattern =
-        new(@"^/dev/tty(USB|ACM|AMA|S\d+)\d*$", RegexOptions.Compiled);
+        PortRegex();
 
     private readonly ILogger<LinuxSerialPortMonitor> _logger;
     private volatile IReadOnlyList<string> _currentPorts;
@@ -54,8 +54,9 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
         ArgumentNullException.ThrowIfNull(logger);
 
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            throw new PlatformNotSupportedException(
-                "LinuxSerialPortMonitor is only supported on Linux.");
+        {
+            throw new PlatformNotSupportedException("LinuxSerialPortMonitor is only supported on Linux.");
+        }
 
         _logger = logger;
         _currentPorts = GetCurrentPorts();
@@ -76,7 +77,10 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
     public void Start()
     {
         ThrowIfDisposed();
-        if (IsRunning) return;
+        if (IsRunning)
+        {
+            return;
+        }
 
         _devWatcher = new FileSystemWatcher("/dev", "tty*")
         {
@@ -112,7 +116,11 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
     /// <inheritdoc/>
     public void Stop()
     {
-        if (_devWatcher is null) return;
+        if (_devWatcher is null)
+        {
+            return;
+        }
+
         _logger.LogInformation("Linux serial port monitor stopping.");
 
         _devWatcher.EnableRaisingEvents = false;
@@ -130,7 +138,11 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         Stop();
     }
@@ -141,7 +153,10 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
     private void OnDeviceChanged(object sender, FileSystemEventArgs e)
     {
         string path = e.FullPath;
-        if (!IsSerialPort(path)) return;
+        if (!IsSerialPort(path))
+        {
+            return;
+        }
 
         var newPorts = GetCurrentPorts();
         var previous = _currentPorts;
@@ -149,7 +164,10 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
         var added = newPorts.Except(previous).ToList();
         var removed = previous.Except(newPorts).ToList();
 
-        if (added.Count == 0 && removed.Count == 0) return;
+        if (added.Count == 0 && removed.Count == 0)
+        {
+            return;
+        }
 
         _currentPorts = newPorts;
         _logger.LogInformation(
@@ -164,10 +182,9 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
 
     /// <summary>Enumerates the current set of serial port device nodes under <c>/dev</c>.</summary>
     private static IReadOnlyList<string> GetCurrentPorts()
-        => Directory.GetFiles("/dev", "tty*")
+        => [.. Directory.GetFiles("/dev", "tty*")
             .Where(IsSerialPort)
-            .OrderBy(f => f, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(f => f, StringComparer.Ordinal)];
 
     /// <summary>Returns <see langword="true"/> when <paramref name="path"/> represents a serial port device.</summary>
     private static bool IsSerialPort(string path)
@@ -182,7 +199,10 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
         IReadOnlyList<string> all)
     {
         var handler = PortsChanged;
-        if (handler is null) return;
+        if (handler is null)
+        {
+            return;
+        }
 
         var args = new Models.PortsChangedEventArgs(added, removed, all);
         foreach (var d in handler.GetInvocationList().Cast<EventHandler<Models.PortsChangedEventArgs>>())
@@ -195,6 +215,12 @@ internal sealed class LinuxSerialPortMonitor : Abstractions.ISerialPortMonitor
     /// <summary>Throws <see cref="ObjectDisposedException"/> when already disposed.</summary>
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(LinuxSerialPortMonitor));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(LinuxSerialPortMonitor));
+        }
     }
+
+    [GeneratedRegex(@"^/dev/tty(USB|ACM|AMA|S\d+)\d*$", RegexOptions.Compiled)]
+    private static partial Regex PortRegex();
 }

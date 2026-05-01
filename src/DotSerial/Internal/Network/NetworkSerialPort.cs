@@ -104,8 +104,7 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         set
         {
             _readTimeout = value;
-            if (_stream is not null)
-                _stream.ReadTimeout = value == -1 ? Timeout.Infinite : value;
+            _stream?.ReadTimeout = value == -1 ? Timeout.Infinite : value;
         }
     }
 
@@ -116,8 +115,7 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         set
         {
             _writeTimeout = value;
-            if (_stream is not null)
-                _stream.WriteTimeout = value == -1 ? Timeout.Infinite : value;
+            _stream?.WriteTimeout = value == -1 ? Timeout.Infinite : value;
         }
     }
 
@@ -205,8 +203,10 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
     /// <inheritdoc/>
     public void Close()
     {
-        if (_stream is not null) { _stream.Close(); _stream = null; }
-        if (_client is not null) { _client.Close(); _client = null; }
+        _stream?.Close();
+        _stream = null;
+        _client?.Close();
+        _client = null;
         _logger.LogInformation("Disconnected from TCP serial bridge {Host}:{Port}.", _host, _tcpPort);
     }
 
@@ -289,7 +289,10 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         ThrowIfNotOpen();
 
         var available = _client!.Available;
-        if (available == 0) return string.Empty;
+        if (available == 0)
+        {
+            return string.Empty;
+        }
 
         var buffer = new byte[available];
         _ = _stream!.Read(buffer, 0, available);
@@ -311,7 +314,9 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         ThrowIfNotOpen();
 
         if (string.IsNullOrEmpty(value))
+        {
             throw new ArgumentException("Delimiter must not be null or empty.", nameof(value));
+        }
 
         var sb = new StringBuilder();
         int b;
@@ -357,10 +362,17 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         while (!cancellationToken.IsCancellationRequested)
         {
             int read = await _stream!.ReadAsync(buf.AsMemory(0, 1), cancellationToken).ConfigureAwait(false);
-            if (read == 0) break;
+            if (read == 0)
+            {
+                break;
+            }
 
-            char c = (char)buf[0];
-            if (c == '\n') return sb.ToString();
+            var c = (char)buf[0];
+            if (c == '\n')
+            {
+                return sb.ToString();
+            }
+
             sb.Append(c);
         }
 
@@ -383,7 +395,11 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         _stream?.Dispose();
         _client?.Dispose();
@@ -417,7 +433,11 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
         int b;
         while ((b = _stream!.ReadByte()) != -1)
         {
-            if ((char)b == delimiter) return sb.ToString();
+            if ((char)b == delimiter)
+            {
+                return sb.ToString();
+            }
+
             sb.Append((char)b);
         }
         return sb.ToString();
@@ -426,13 +446,18 @@ internal sealed class NetworkSerialPort : Abstractions.ISerialPort
     /// <summary>Throws <see cref="ObjectDisposedException"/> if this instance has been disposed.</summary>
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(NetworkSerialPort));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(NetworkSerialPort));
+        }
     }
 
     /// <summary>Throws <see cref="Exceptions.SerialPortException"/> if the port is not connected.</summary>
     private void ThrowIfNotOpen()
     {
         if (!IsOpen)
+        {
             throw new Exceptions.SerialPortException($"Network serial port '{PortName}' is not connected.");
+        }
     }
 }

@@ -48,8 +48,10 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
         ArgumentNullException.ThrowIfNull(logger);
 
         if (!RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+        {
             throw new PlatformNotSupportedException(
                 "MacOSSerialPortMonitor is only supported on macOS.");
+        }
 
         _logger = logger;
         _currentPorts = GetCurrentPorts();
@@ -157,10 +159,9 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
 
     /// <summary>Enumerates the current set of call-out serial port device nodes under <c>/dev</c>.</summary>
     private static IReadOnlyList<string> GetCurrentPorts()
-        => Directory.GetFiles("/dev", "cu.*")
+        => [.. Directory.GetFiles("/dev", "cu.*")
             .Where(IsSerialPort)
-            .OrderBy(f => f, StringComparer.Ordinal)
-            .ToArray();
+            .OrderBy(f => f, StringComparer.Ordinal)];
 
     /// <summary>
     /// Returns <see langword="true"/> when <paramref name="path"/> is a call-out serial port,
@@ -178,7 +179,10 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
         IReadOnlyList<string> all)
     {
         var handler = PortsChanged;
-        if (handler is null) return;
+        if (handler is null)
+        {
+            return;
+        }
 
         var args = new Models.PortsChangedEventArgs(added, removed, all);
         foreach (var d in handler.GetInvocationList().Cast<EventHandler<Models.PortsChangedEventArgs>>())
@@ -191,6 +195,9 @@ internal sealed class MacOSSerialPortMonitor : Abstractions.ISerialPortMonitor
     /// <summary>Throws <see cref="ObjectDisposedException"/> when already disposed.</summary>
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(MacOSSerialPortMonitor));
+        if (_disposed)
+        {
+            throw new ObjectDisposedException(nameof(MacOSSerialPortMonitor));
+        }
     }
 }
