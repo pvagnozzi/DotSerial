@@ -104,5 +104,72 @@ public sealed class SerialPortSettingsTests
         Assert.That(settings.WriteTimeout, Is.EqualTo(500));
         Assert.That(settings.ReadBufferSize, Is.EqualTo(4096));
         Assert.That(settings.WriteBufferSize, Is.EqualTo(2048));
+        Assert.That(settings.ConnectionType, Is.EqualTo(Enums.ConnectionType.Serial));
+        Assert.That(settings.BluetoothAddress, Is.Null);
+    }
+
+    // ── Bluetooth / ConnectionType tests ──────────────────────────────────
+
+    [Test]
+    public void Validate_BluetoothWithValidAddress_DoesNotThrow()
+    {
+        var settings = new SerialPortSettings
+        {
+            PortName = "BT-Device",
+            ConnectionType = Enums.ConnectionType.Bluetooth,
+            BluetoothAddress = "00:11:22:33:44:55",
+        };
+        Assert.DoesNotThrow(() => settings.Validate());
+    }
+
+    [Test]
+    [TestCase(null)]
+    [TestCase("")]
+    [TestCase("   ")]
+    public void Validate_BluetoothWithMissingAddress_ThrowsSerialPortException(string? address)
+    {
+        var settings = new SerialPortSettings
+        {
+            PortName = "BT-Device",
+            ConnectionType = Enums.ConnectionType.Bluetooth,
+            BluetoothAddress = address,
+        };
+        Assert.Throws<SerialPortException>(() => settings.Validate());
+    }
+
+    [Test]
+    public void Validate_SerialConnectionType_DoesNotRequireBluetoothAddress()
+    {
+        var settings = new SerialPortSettings
+        {
+            PortName = "COM3",
+            ConnectionType = Enums.ConnectionType.Serial,
+        };
+        Assert.DoesNotThrow(() => settings.Validate());
+    }
+
+    [Test]
+    public void Validate_NetworkConnectionType_DoesNotRequireBluetoothAddress()
+    {
+        var settings = new SerialPortSettings
+        {
+            PortName = "192.168.1.100:23",
+            ConnectionType = Enums.ConnectionType.Network,
+        };
+        Assert.DoesNotThrow(() => settings.Validate());
+    }
+
+    [Test]
+    public void WithExpression_PreservesConnectionType()
+    {
+        var original = new SerialPortSettings
+        {
+            PortName = "BT-Device",
+            ConnectionType = Enums.ConnectionType.Bluetooth,
+            BluetoothAddress = "AA:BB:CC:DD:EE:FF",
+        };
+        var modified = original with { BaudRate = 115200 };
+        Assert.That(modified.ConnectionType, Is.EqualTo(Enums.ConnectionType.Bluetooth));
+        Assert.That(modified.BluetoothAddress, Is.EqualTo("AA:BB:CC:DD:EE:FF"));
     }
 }

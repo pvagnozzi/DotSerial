@@ -32,4 +32,24 @@ public static class ServiceCollectionExtensions
         services.AddSingleton<Abstractions.ISerialPortFactory, SerialPortFactory>();
         return services;
     }
+
+    /// <summary>
+    /// Registers a singleton <see cref="Abstractions.ISerialPortMonitor"/> created by
+    /// <see cref="Abstractions.ISerialPortFactory.CreateMonitor"/>.
+    /// </summary>
+    /// <param name="services">The service collection to register into.</param>
+    /// <param name="pollingInterval">
+    /// How often the monitor polls for port changes.
+    /// Defaults to one second when <see langword="null"/>.
+    /// </param>
+    /// <returns>The same <see cref="IServiceCollection"/> for chaining.</returns>
+    public static IServiceCollection AddDotSerialMonitor(
+        this IServiceCollection services,
+        TimeSpan? pollingInterval = null)
+    {
+        ArgumentNullException.ThrowIfNull(services);
+        services.AddSingleton<Abstractions.ISerialPortMonitor>(sp =>
+            sp.GetRequiredService<Abstractions.ISerialPortFactory>().CreateMonitor(pollingInterval));
+        return services;
+    }
 }

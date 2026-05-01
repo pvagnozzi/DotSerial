@@ -16,11 +16,15 @@ namespace DotSerial.Abstractions;
 /// Represents a <see cref="Stream"/> that is backed by a serial port connection,
 /// enabling stream-based read/write operations over a serial link.
 /// </summary>
-public interface ISerialPortStream : IDisposable
+/// <remarks>
+/// Obtain instances via <see cref="ISerialPortFactory.CreateStream"/> or by constructing
+/// <see cref="DotSerial.Streams.SerialPortStreamWrapper"/> directly.
+/// </remarks>
+public interface ISerialPortStream : IDisposable, IAsyncDisposable
 {
     /// <summary>Gets the underlying serial port that backs this stream.</summary>
     ISerialPort SerialPort { get; }
 
-    /// <summary>Gets the stream for reading and writing data.</summary>
+    /// <summary>Gets the underlying <see cref="System.IO.Stream"/> for reading and writing data.</summary>
     Stream Stream { get; }
 }

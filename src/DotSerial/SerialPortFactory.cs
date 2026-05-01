@@ -12,6 +12,7 @@
 
 namespace DotSerial;
 
+using System.Runtime.InteropServices;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
@@ -36,15 +37,38 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
         ArgumentNullException.ThrowIfNull(settings);
         settings.Validate();
 
+        // Network is cross-platform — handle first before any platform fork.
+        if (settings.ConnectionType == Enums.ConnectionType.Network)
+        {
+            return new Internal.Network.NetworkSerialPort(
+                settings,
+                _loggerFactory.CreateLogger<Internal.Network.NetworkSerialPort>());
+        }
+
 #if ANDROID
-        return new Internal.Android.AndroidSerialPort(
-            settings,
-            _loggerFactory.CreateLogger<Internal.Android.AndroidSerialPort>());
+        return settings.ConnectionType == Enums.ConnectionType.Bluetooth
+            ? new Internal.Android.AndroidBluetoothSerialPort(
+                settings,
+                _loggerFactory.CreateLogger<Internal.Android.AndroidBluetoothSerialPort>())
+            : new Internal.Android.AndroidSerialPort(
+                settings,
+                _loggerFactory.CreateLogger<Internal.Android.AndroidSerialPort>());
 #elif IOS
-        return new Internal.iOS.iOSSerialPort(
-            settings,
-            _loggerFactory.CreateLogger<Internal.iOS.iOSSerialPort>());
+        return settings.ConnectionType == Enums.ConnectionType.Bluetooth
+            ? new Internal.iOS.iOSBluetoothSerialPort(
+                settings,
+                _loggerFactory.CreateLogger<Internal.iOS.iOSBluetoothSerialPort>())
+            : new Internal.iOS.iOSSerialPort(
+                settings,
+                _loggerFactory.CreateLogger<Internal.iOS.iOSSerialPort>());
 #else
+        if (settings.ConnectionType != Enums.ConnectionType.Serial)
+        {
+            throw new PlatformNotSupportedException(
+                $"ConnectionType '{settings.ConnectionType}' is not supported on desktop platforms. " +
+                "Use ConnectionType.Serial or ConnectionType.Network.");
+        }
+
         return new Internal.Desktop.DesktopSerialPort(
             settings,
             _loggerFactory.CreateLogger<Internal.Desktop.DesktopSerialPort>());
@@ -59,5 +83,31 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
 #else
         return System.IO.Ports.SerialPort.GetPortNames();
 #endif
+    }
+
+    /// <inheritdoc/>
+    public Abstractions.ISerialPortMonitor CreateMonitor(TimeSpan? pollingInterval = null)
+    {
+#if ANDROID || IOS
+        throw new PlatformNotSupportedException("Serial port monitoring is not supported on this platform.");
+#else
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            return new Internal.Linux.LinuxSerialPortMonitor(
+                _loggerFactory.CreateLogger<Internal.Linux.LinuxSerialPortMonitor>());
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            return new Internal.MacOS.MacOSSerialPortMonitor(
+                _loggerFactory.CreateLogger<Internal.MacOS.MacOSSerialPortMonitor>());
+        return new Internal.Desktop.DesktopSerialPortMonitor(
+            pollingInterval ?? TimeSpan.FromSeconds(1),
+            _loggerFactory.CreateLogger<Internal.Desktop.DesktopSerialPortMonitor>());
+#endif
+    }
+
+    /// <inheritdoc/>
+    public Abstractions.ISerialPortStream CreateStream(Models.SerialPortSettings settings)
+    {
+        ArgumentNullException.ThrowIfNull(settings);
+        var port = Create(settings);
+        return new Streams.SerialPortStreamWrapper(port);
     }
 }

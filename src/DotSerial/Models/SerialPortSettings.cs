@@ -49,6 +49,23 @@ public sealed record SerialPortSettings
     public int WriteBufferSize { get; init; } = 2048;
 
     /// <summary>
+    /// Gets the underlying transport layer for this connection.
+    /// Default is <see cref="Enums.ConnectionType.Serial"/> (physical / USB-to-serial).
+    /// </summary>
+    public Enums.ConnectionType ConnectionType { get; init; } = Enums.ConnectionType.Serial;
+
+    /// <summary>
+    /// Gets the Bluetooth device address used when
+    /// <see cref="ConnectionType"/> is <see cref="Enums.ConnectionType.Bluetooth"/>.
+    /// <list type="bullet">
+    ///   <item>Android: remote device MAC address, e.g. <c>"00:11:22:33:44:55"</c>.</item>
+    ///   <item>iOS: CBPeripheral UUID string or device name.</item>
+    /// </list>
+    /// Ignored for other connection types.
+    /// </summary>
+    public string? BluetoothAddress { get; init; }
+
+    /// <summary>
     /// Validates the settings, throwing <see cref="Exceptions.SerialPortException"/>
     /// if any value is out of range.
     /// </summary>
@@ -65,5 +82,21 @@ public sealed record SerialPortSettings
             throw new Exceptions.SerialPortException($"ReadTimeout must be -1 (infinite) or a positive value; got {ReadTimeout}.");
         if (WriteTimeout < -1)
             throw new Exceptions.SerialPortException($"WriteTimeout must be -1 (infinite) or a positive value; got {WriteTimeout}.");
+        if (ConnectionType == Enums.ConnectionType.Bluetooth && string.IsNullOrWhiteSpace(BluetoothAddress))
+            throw new Exceptions.SerialPortException(
+                "BluetoothAddress must not be null or empty when ConnectionType is Bluetooth.");
+        if (ConnectionType == Enums.ConnectionType.Network)
+        {
+            var colonIndex = PortName.LastIndexOf(':');
+            if (colonIndex < 0
+                || !int.TryParse(PortName.AsSpan(colonIndex + 1), out var tcpPort)
+                || tcpPort is < 1 or > 65535
+                || string.IsNullOrWhiteSpace(PortName[..colonIndex]))
+            {
+                throw new Exceptions.SerialPortException(
+                    $"PortName '{PortName}' must be in 'host:port' format with a valid port number " +
+                    "(1–65535) when ConnectionType is Network, e.g. '192.168.1.100:4001'.");
+            }
+        }
     }
 }

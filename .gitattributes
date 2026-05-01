@@ -1,0 +1,52 @@
+# -----------------------------------------------------------------------
+# .gitattributes — DotSerial
+# Normalise line endings to LF in the repository (matching .editorconfig)
+# and ensure correct diffs for binary assets.
+# -----------------------------------------------------------------------
+
+# Default: normalise all text files to LF
+* text=auto eol=lf
+
+# Source code
+*.cs        text eol=lf
+*.csx       text eol=lf
+*.vb        text eol=lf
+
+# Project / solution files
+*.csproj    text eol=lf
+*.vbproj    text eol=lf
+*.sln       text eol=lf
+*.slnx      text eol=lf
+*.props     text eol=lf
+*.targets   text eol=lf
+
+# Config / markup
+*.editorconfig  text eol=lf
+*.gitattributes text eol=lf
+*.gitignore     text eol=lf
+*.json          text eol=lf
+*.xml           text eol=lf
+*.yml           text eol=lf
+*.yaml          text eol=lf
+*.md            text eol=lf
+*.txt           text eol=lf
+
+# Shell / scripts
+*.sh        text eol=lf
+*.cmd       text eol=crlf
+*.bat       text eol=crlf
+*.ps1       text eol=lf
+
+# Binaries — never diff or merge
+*.dll       binary
+*.exe       binary
+*.pdb       binary
+*.so        binary
+*.dylib     binary
+*.nupkg     binary
+*.snupkg    binary
+*.png       binary
+*.jpg       binary
+*.jpeg      binary
+*.gif       binary
+*.ico       binary

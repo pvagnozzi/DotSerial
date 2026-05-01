@@ -26,4 +26,23 @@ public interface ISerialPortFactory
     /// <summary>Returns all serial port names available on this platform.</summary>
     /// <returns>A read-only list of available port names.</returns>
     IReadOnlyList<string> GetPortNames();
+
+    /// <summary>
+    /// Creates a new <see cref="ISerialPortMonitor"/> that watches for serial port
+    /// additions and removals on this platform.
+    /// </summary>
+    /// <param name="pollingInterval">
+    /// How often to poll for port changes. Defaults to one second when <see langword="null"/>.
+    /// </param>
+    /// <returns>A new, stopped <see cref="ISerialPortMonitor"/> instance.</returns>
+    ISerialPortMonitor CreateMonitor(TimeSpan? pollingInterval = null);
+
+    /// <summary>
+    /// Creates a new <see cref="ISerialPortStream"/> wrapping a port configured with
+    /// <paramref name="settings"/>. The underlying port is created via
+    /// <see cref="Create"/> and is owned by the returned stream wrapper.
+    /// </summary>
+    /// <param name="settings">The serial port configuration settings.</param>
+    /// <returns>A new <see cref="ISerialPortStream"/> backed by the configured port.</returns>
+    ISerialPortStream CreateStream(Models.SerialPortSettings settings);
 }

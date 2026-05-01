@@ -87,4 +87,33 @@ public sealed class SerialPortFactoryTests
         Assert.That(ports, Is.Not.Null);
         Assert.That(ports, Is.InstanceOf<IReadOnlyList<string>>());
     }
+
+    [Test]
+    public void CreateMonitor_DefaultInterval_ReturnsNonNull()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        using var monitor = factory.CreateMonitor();
+        Assert.That(monitor, Is.Not.Null);
+    }
+
+    [Test]
+    public void CreateMonitor_ExplicitInterval_ReturnsNonNull()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        using var monitor = factory.CreateMonitor(TimeSpan.FromMilliseconds(250));
+        Assert.That(monitor, Is.Not.Null);
+    }
+
+    [Test]
+    public void Create_BluetoothConnectionType_OnDesktop_ThrowsPlatformNotSupportedException()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        var settings = new Models.SerialPortSettings
+        {
+            PortName = "BT-Device",
+            ConnectionType = Enums.ConnectionType.Bluetooth,
+            BluetoothAddress = "00:11:22:33:44:55",
+        };
+        Assert.Throws<PlatformNotSupportedException>(() => factory.Create(settings));
+    }
 }

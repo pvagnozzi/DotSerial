@@ -51,42 +51,42 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
             WriteBufferSize = settings.WriteBufferSize,
         };
 
-        _inner.DataReceived  += OnDataReceived;
+        _inner.DataReceived += OnDataReceived;
         _inner.ErrorReceived += OnErrorReceived;
-        _inner.PinChanged    += OnPinChanged;
+        _inner.PinChanged += OnPinChanged;
     }
 
     /// <inheritdoc/>
-    public string PortName  => _inner.PortName;
+    public string PortName => _inner.PortName;
     /// <inheritdoc/>
-    public int BaudRate     => _inner.BaudRate;
+    public int BaudRate => _inner.BaudRate;
     /// <inheritdoc/>
     public Enums.Parity Parity => MapBackParity(_inner.Parity);
     /// <inheritdoc/>
-    public int DataBits     => _inner.DataBits;
+    public int DataBits => _inner.DataBits;
     /// <inheritdoc/>
     public Enums.StopBits StopBits => MapBackStopBits(_inner.StopBits);
     /// <inheritdoc/>
     public Enums.FlowControl FlowControl => MapBackHandshake(_inner.Handshake);
     /// <inheritdoc/>
-    public int ReadTimeout  { get => _inner.ReadTimeout;  set => _inner.ReadTimeout  = value; }
+    public int ReadTimeout { get => _inner.ReadTimeout; set => _inner.ReadTimeout = value; }
     /// <inheritdoc/>
     public int WriteTimeout { get => _inner.WriteTimeout; set => _inner.WriteTimeout = value; }
     /// <inheritdoc/>
-    public bool IsOpen      => _inner.IsOpen;
+    public bool IsOpen => _inner.IsOpen;
     /// <inheritdoc/>
-    public int BytesToRead  => _inner.BytesToRead;
+    public int BytesToRead => _inner.BytesToRead;
     /// <inheritdoc/>
     public int BytesToWrite => _inner.BytesToWrite;
     /// <inheritdoc/>
     public Stream BaseStream => _inner.BaseStream;
 
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialDataReceivedEventArgs>?  DataReceived;
+    public event EventHandler<Models.SerialDataReceivedEventArgs>? DataReceived;
     /// <inheritdoc/>
     public event EventHandler<Models.SerialErrorReceivedEventArgs>? ErrorReceived;
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialPinChangedEventArgs>?    PinChanged;
+    public event EventHandler<Models.SerialPinChangedEventArgs>? PinChanged;
 
     /// <inheritdoc/>
     public void Open()
@@ -270,7 +270,7 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
     }
 
     /// <inheritdoc/>
-    public void DiscardInBuffer()  { ThrowIfDisposed(); _inner.DiscardInBuffer(); }
+    public void DiscardInBuffer() { ThrowIfDisposed(); _inner.DiscardInBuffer(); }
     /// <inheritdoc/>
     public void DiscardOutBuffer() { ThrowIfDisposed(); _inner.DiscardOutBuffer(); }
 
@@ -279,9 +279,9 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
     {
         if (_disposed) return;
         _disposed = true;
-        _inner.DataReceived  -= OnDataReceived;
+        _inner.DataReceived -= OnDataReceived;
         _inner.ErrorReceived -= OnErrorReceived;
-        _inner.PinChanged    -= OnPinChanged;
+        _inner.PinChanged -= OnPinChanged;
         if (_inner.IsOpen) _inner.Close();
         _inner.Dispose();
         _logger.LogDebug("Serial port {PortName} disposed.", PortName);
@@ -317,66 +317,66 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
 
     private static SysIO.Parity MapParity(Enums.Parity p) => p switch
     {
-        Enums.Parity.None  => SysIO.Parity.None,
-        Enums.Parity.Odd   => SysIO.Parity.Odd,
-        Enums.Parity.Even  => SysIO.Parity.Even,
-        Enums.Parity.Mark  => SysIO.Parity.Mark,
+        Enums.Parity.None => SysIO.Parity.None,
+        Enums.Parity.Odd => SysIO.Parity.Odd,
+        Enums.Parity.Even => SysIO.Parity.Even,
+        Enums.Parity.Mark => SysIO.Parity.Mark,
         Enums.Parity.Space => SysIO.Parity.Space,
         _ => throw new ArgumentOutOfRangeException(nameof(p), p, null)
     };
 
     private static SysIO.StopBits MapStopBits(Enums.StopBits s) => s switch
     {
-        Enums.StopBits.One          => SysIO.StopBits.One,
+        Enums.StopBits.One => SysIO.StopBits.One,
         Enums.StopBits.OnePointFive => SysIO.StopBits.OnePointFive,
-        Enums.StopBits.Two          => SysIO.StopBits.Two,
+        Enums.StopBits.Two => SysIO.StopBits.Two,
         _ => throw new ArgumentOutOfRangeException(nameof(s), s, null)
     };
 
     private static SysIO.Handshake MapHandshake(Enums.FlowControl fc) => fc switch
     {
-        Enums.FlowControl.None                    => SysIO.Handshake.None,
-        Enums.FlowControl.XOnXOff                 => SysIO.Handshake.XOnXOff,
-        Enums.FlowControl.RequestToSend           => SysIO.Handshake.RequestToSend,
-        Enums.FlowControl.RequestToSendXOnXOff    => SysIO.Handshake.RequestToSendXOnXOff,
+        Enums.FlowControl.None => SysIO.Handshake.None,
+        Enums.FlowControl.XOnXOff => SysIO.Handshake.XOnXOff,
+        Enums.FlowControl.RequestToSend => SysIO.Handshake.RequestToSend,
+        Enums.FlowControl.RequestToSendXOnXOff => SysIO.Handshake.RequestToSendXOnXOff,
         _ => throw new ArgumentOutOfRangeException(nameof(fc), fc, null)
     };
 
     private static Enums.Parity MapBackParity(SysIO.Parity p) => p switch
     {
-        SysIO.Parity.None  => Enums.Parity.None,
-        SysIO.Parity.Odd   => Enums.Parity.Odd,
-        SysIO.Parity.Even  => Enums.Parity.Even,
-        SysIO.Parity.Mark  => Enums.Parity.Mark,
+        SysIO.Parity.None => Enums.Parity.None,
+        SysIO.Parity.Odd => Enums.Parity.Odd,
+        SysIO.Parity.Even => Enums.Parity.Even,
+        SysIO.Parity.Mark => Enums.Parity.Mark,
         SysIO.Parity.Space => Enums.Parity.Space,
         _ => throw new ArgumentOutOfRangeException(nameof(p), p, null)
     };
 
     private static Enums.StopBits MapBackStopBits(SysIO.StopBits s) => s switch
     {
-        SysIO.StopBits.None         => Enums.StopBits.One,
-        SysIO.StopBits.One          => Enums.StopBits.One,
+        SysIO.StopBits.None => Enums.StopBits.One,
+        SysIO.StopBits.One => Enums.StopBits.One,
         SysIO.StopBits.OnePointFive => Enums.StopBits.OnePointFive,
-        SysIO.StopBits.Two          => Enums.StopBits.Two,
+        SysIO.StopBits.Two => Enums.StopBits.Two,
         _ => throw new ArgumentOutOfRangeException(nameof(s), s, null)
     };
 
     private static Enums.FlowControl MapBackHandshake(SysIO.Handshake h) => h switch
     {
-        SysIO.Handshake.None                 => Enums.FlowControl.None,
-        SysIO.Handshake.XOnXOff              => Enums.FlowControl.XOnXOff,
-        SysIO.Handshake.RequestToSend        => Enums.FlowControl.RequestToSend,
+        SysIO.Handshake.None => Enums.FlowControl.None,
+        SysIO.Handshake.XOnXOff => Enums.FlowControl.XOnXOff,
+        SysIO.Handshake.RequestToSend => Enums.FlowControl.RequestToSend,
         SysIO.Handshake.RequestToSendXOnXOff => Enums.FlowControl.RequestToSendXOnXOff,
         _ => throw new ArgumentOutOfRangeException(nameof(h), h, null)
     };
 
     private static Enums.SerialError MapBackSerialError(SysIO.SerialError e) => e switch
     {
-        SysIO.SerialError.RXOver   => Enums.SerialError.RXOver,
-        SysIO.SerialError.Overrun  => Enums.SerialError.Overrun,
+        SysIO.SerialError.RXOver => Enums.SerialError.RXOver,
+        SysIO.SerialError.Overrun => Enums.SerialError.Overrun,
         SysIO.SerialError.RXParity => Enums.SerialError.RXParity,
-        SysIO.SerialError.Frame    => Enums.SerialError.Frame,
-        SysIO.SerialError.TXFull   => Enums.SerialError.TXFull,
+        SysIO.SerialError.Frame => Enums.SerialError.Frame,
+        SysIO.SerialError.TXFull => Enums.SerialError.TXFull,
         _ => throw new ArgumentOutOfRangeException(nameof(e), e, null)
     };
 
@@ -384,9 +384,9 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
     {
         SysIO.SerialPinChange.CtsChanged => Enums.SerialPinChange.CtsChanged,
         SysIO.SerialPinChange.DsrChanged => Enums.SerialPinChange.DsrChanged,
-        SysIO.SerialPinChange.CDChanged  => Enums.SerialPinChange.CDChanged,
-        SysIO.SerialPinChange.Ring       => Enums.SerialPinChange.Ring,
-        SysIO.SerialPinChange.Break      => Enums.SerialPinChange.Break,
+        SysIO.SerialPinChange.CDChanged => Enums.SerialPinChange.CDChanged,
+        SysIO.SerialPinChange.Ring => Enums.SerialPinChange.Ring,
+        SysIO.SerialPinChange.Break => Enums.SerialPinChange.Break,
         _ => throw new ArgumentOutOfRangeException(nameof(p), p, null)
     };
 }

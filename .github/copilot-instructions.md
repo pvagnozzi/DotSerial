@@ -37,15 +37,16 @@ dotnet test --filter "FullyQualifiedName~SerialPortSettingsTests"
 ## Architecture
 
 ```
-DotSerial.Abstractions   → ISerialPort, ISerialPortFactory, ISerialPortStream (public interfaces)
-DotSerial.Enums          → BaudRate, DataBits, Parity, StopBits, FlowControl, SerialError, SerialPinChange, SerialData
-DotSerial.Models         → SerialPortSettings (immutable record), event args classes
+DotSerial.Abstractions   → ISerialPort, ISerialPortFactory, ISerialPortMonitor, ISerialPortStream (public interfaces)
+DotSerial.Enums          → BaudRate, DataBits, Parity, StopBits, FlowControl, SerialError, SerialPinChange, SerialData, ConnectionType
+DotSerial.Models         → SerialPortSettings (immutable record), event args, PortsChangedEventArgs
 DotSerial.Exceptions     → SerialPortException (base), SerialPortNotFoundException, SerialPortTimeoutException
 DotSerial.Internal       → Platform implementations (internal visibility)
-  ├── Desktop            → DesktopSerialPort (#if NET10_0) — wraps System.IO.Ports.SerialPort
-  ├── Android            → AndroidSerialPort (#if NET10_0_ANDROID) — USB Host Mode stub
-  └── iOS                → iOSSerialPort (#if NET10_0_IOS) — External Accessory stub
-DotSerial                → SerialPortFactory (public), ServiceCollectionExtensions
+  ├── Desktop            → DesktopSerialPort, DesktopSerialPortMonitor  (Condition net10.0)
+  ├── Android            → AndroidSerialPort, AndroidBluetoothSerialPort (Condition net10.0-android)
+  └── iOS                → iOSSerialPort, iOSBluetoothSerialPort         (Condition net10.0-ios)
+DotSerial.Decorators     → ThrottledSerialPort (platform-agnostic write-rate limiter, wraps any ISerialPort)
+DotSerial                → SerialPortFactory, ServiceCollectionExtensions
 ```
 
 ## File Header Requirement
@@ -90,6 +91,37 @@ Every `.cs` file MUST start with:
 - `NET10_0_IOS` — iOS only
 
 The `#if NET10_0` correctly excludes Android/iOS because those TFMs define `NET10_0_ANDROID`/`NET10_0_IOS` but NOT `NET10_0`.
+However, the csproj uses `<Compile Remove>` with MSBuild `Condition` attributes (preferred) instead of `#if` guards.
+
+## ConnectionType and Bluetooth
+
+`SerialPortSettings` has a `ConnectionType` property (`Serial` default, `Bluetooth`, `Network`) and an optional `BluetoothAddress`.
+
+- **Desktop**: only `ConnectionType.Serial` is supported; `Bluetooth` throws `PlatformNotSupportedException`.
+- **Android Bluetooth**: set `ConnectionType = Bluetooth`, `BluetoothAddress = "00:11:22:33:44:55"` (MAC), `PortName = device name`.
+- **iOS Bluetooth**: set `ConnectionType = Bluetooth`, `BluetoothAddress = CBPeripheral UUID`, uses NUS BLE profile.
+- `Validate()` enforces `BluetoothAddress` is non-empty when `ConnectionType == Bluetooth`.
+
+## ThrottledSerialPort Decorator
+
+Token-bucket write throttle wrapping any `ISerialPort`:
+```csharp
+using var throttled = new ThrottledSerialPort(port, maxBytesPerSecond: 9600, logger);
+throttled.Write(data, 0, data.Length); // blocked until rate allows
+```
+- Sync writes use `Thread.Sleep`; async writes use `Task.Delay`.
+- All read operations and properties delegate unmodified to the inner port.
+- Thread-safe via `SemaphoreSlim _bucketLock`.
+
+## ISerialPortMonitor
+
+Detects port hotplug/removal:
+```csharp
+using var monitor = factory.CreateMonitor(TimeSpan.FromSeconds(1));
+monitor.PortsChanged += (_, e) => Console.WriteLine($"Added: {string.Join(", ", e.AddedPorts)}");
+monitor.Start();
+```
+DI: `services.AddDotSerial().AddDotSerialMonitor();`
 
 ## NSubstitute Patterns for Tests
 

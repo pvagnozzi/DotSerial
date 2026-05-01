@@ -9,7 +9,6 @@
 
     <!-- NuGet metadata -->
     <PackageId>DotSerial</PackageId>
-    <Version>1.0.0</Version>
     <Authors>Piergiorgio Vagnozzi</Authors>
     <Company>Piergiorgio Vagnozzi</Company>
     <Product>DotSerial</Product>
@@ -18,7 +17,7 @@
     <PackageProjectUrl>https://github.com/pvagnozzi/DotSerial</PackageProjectUrl>
     <RepositoryUrl>https://github.com/pvagnozzi/DotSerial</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
-    <PackageTags>serial;serialport;com;uart;cross-platform;dotnet;maui</PackageTags>
+    <PackageTags>serial;serialport;com;uart;cross-platform;dotnet;maui;bluetooth;tcp</PackageTags>
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
     <IncludeSymbols>true</IncludeSymbols>
@@ -28,16 +27,29 @@
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <AnalysisLevel>latest</AnalysisLevel>
     <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+    <!-- MinVer: version is set automatically from the nearest git tag (e.g. v1.2.0) -->
+    <MinVerDefaultPreReleaseIdentifiers>preview</MinVerDefaultPreReleaseIdentifiers>
+    <MinVerTagPrefix>v</MinVerTagPrefix>
   </PropertyGroup>
 
   <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
   </ItemGroup>
 
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleToAttribute">
+      <_Parameter1>DotSerial.Tests.Unit</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
+
   <!-- All platforms: logging -->
   <ItemGroup>
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.*" />
     <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.*" />
+    <PackageReference Include="MinVer" Version="5.*">
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+      <PrivateAssets>all</PrivateAssets>
+    </PackageReference>
   </ItemGroup>
 
   <!-- Desktop (Windows, Linux, macOS) only -->
@@ -48,12 +60,17 @@
   <!-- Exclude platform-specific files from wrong targets -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
     <Compile Remove="Internal\Desktop\DesktopSerialPort.cs" />
+    <Compile Remove="Internal\Desktop\DesktopSerialPortMonitor.cs" />
+    <Compile Remove="Internal\Linux\LinuxSerialPortMonitor.cs" />
+    <Compile Remove="Internal\MacOS\MacOSSerialPortMonitor.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-android'">
     <Compile Remove="Internal\Android\AndroidSerialPort.cs" />
+    <Compile Remove="Internal\Android\AndroidBluetoothSerialPort.cs" />
   </ItemGroup>
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-ios'">
     <Compile Remove="Internal\iOS\iOSSerialPort.cs" />
+    <Compile Remove="Internal\iOS\iOSBluetoothSerialPort.cs" />
   </ItemGroup>
 
 </Project>
