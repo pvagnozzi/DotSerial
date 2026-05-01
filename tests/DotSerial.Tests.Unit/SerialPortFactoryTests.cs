@@ -108,12 +108,66 @@ public sealed class SerialPortFactoryTests
     public void Create_BluetoothConnectionType_OnDesktop_ThrowsPlatformNotSupportedException()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        var settings = new Models.SerialPortSettings
+        var settings = new DotSerial.Models.SerialPortSettings
         {
             PortName = "BT-Device",
             ConnectionType = Enums.ConnectionType.Bluetooth,
             BluetoothAddress = "00:11:22:33:44:55",
         };
         Assert.Throws<PlatformNotSupportedException>(() => factory.Create(settings));
+    }
+
+    // ── CreateStream ──────────────────────────────────────────────────────
+
+    [Test]
+    public void CreateStream_NullSettings_ThrowsArgumentNullException()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        Assert.Throws<ArgumentNullException>(() => factory.CreateStream(null!));
+    }
+
+    [Test]
+    public void CreateStream_ValidSettings_ReturnsNonNull()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        using var stream = factory.CreateStream(new DotSerial.Models.SerialPortSettings { PortName = "COM1" });
+        Assert.That(stream, Is.Not.Null);
+    }
+
+    [Test]
+    public void CreateStream_ValidSettings_PortNameMatchesSettings()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        using var stream = factory.CreateStream(new DotSerial.Models.SerialPortSettings { PortName = "COM5" });
+        Assert.That(stream.SerialPort.PortName, Is.EqualTo("COM5"));
+    }
+
+    [Test]
+    public void CreateStream_InvalidSettings_ThrowsSerialPortException()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        Assert.Throws<SerialPortException>(() =>
+            factory.CreateStream(new DotSerial.Models.SerialPortSettings { PortName = "" }));
+    }
+
+    // ── OpenAsync / CloseAsync (not connected) ───────────────────────────
+
+    [Test]
+    public async Task OpenAsync_WhenPortNotAvailable_ThrowsSerialPortNotFoundException()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        // Use a port name that is very unlikely to exist on any machine.
+        using var port = factory.Create(new DotSerial.Models.SerialPortSettings { PortName = "COM249" });
+        Assert.ThrowsAsync<SerialPortNotFoundException>(async () =>
+            await port.OpenAsync(CancellationToken.None));
+    }
+
+    [Test]
+    public void CloseAsync_WhenNotOpen_DoesNotThrow()
+    {
+        var factory = new SerialPortFactory(_loggerFactory);
+        using var port = factory.Create(new DotSerial.Models.SerialPortSettings { PortName = "COM1" });
+        Assert.DoesNotThrowAsync(async () =>
+            await port.CloseAsync(CancellationToken.None));
     }
 }

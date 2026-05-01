@@ -91,6 +91,11 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
 #if ANDROID || IOS
         throw new PlatformNotSupportedException("Serial port monitoring is not supported on this platform.");
 #else
+        var interval = pollingInterval ?? TimeSpan.FromSeconds(1);
+        if (interval <= TimeSpan.Zero)
+            throw new ArgumentOutOfRangeException(nameof(pollingInterval), pollingInterval,
+                "Polling interval must be a positive TimeSpan.");
+
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
             return new Internal.Linux.LinuxSerialPortMonitor(
                 _loggerFactory.CreateLogger<Internal.Linux.LinuxSerialPortMonitor>());
@@ -98,7 +103,7 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
             return new Internal.MacOS.MacOSSerialPortMonitor(
                 _loggerFactory.CreateLogger<Internal.MacOS.MacOSSerialPortMonitor>());
         return new Internal.Desktop.DesktopSerialPortMonitor(
-            pollingInterval ?? TimeSpan.FromSeconds(1),
+            interval,
             _loggerFactory.CreateLogger<Internal.Desktop.DesktopSerialPortMonitor>());
 #endif
     }

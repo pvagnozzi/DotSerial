@@ -50,4 +50,66 @@ public sealed class ServiceCollectionExtensionsTests
         Assert.That(factory1, Is.SameAs(factory2));
         Assert.That(factory1, Is.InstanceOf<SerialPortFactory>());
     }
+
+    // ── AddDotSerialMonitor ───────────────────────────────────────────────
+
+    [Test]
+    public void AddDotSerialMonitor_NullServices_ThrowsArgumentNullException()
+    {
+        IServiceCollection? services = null;
+        Assert.Throws<ArgumentNullException>(() => services!.AddDotSerialMonitor());
+    }
+
+    [Test]
+    public void AddDotSerialMonitor_ReturnsSameServiceCollection()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDotSerial();
+        var result = services.AddDotSerialMonitor();
+        Assert.That(result, Is.SameAs(services));
+    }
+
+    [Test]
+    public void AddDotSerialMonitor_RegistersISerialPortMonitorAsSingleton()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDotSerial();
+        services.AddDotSerialMonitor();
+
+        var provider = services.BuildServiceProvider();
+        var monitor1 = provider.GetRequiredService<ISerialPortMonitor>();
+        var monitor2 = provider.GetRequiredService<ISerialPortMonitor>();
+
+        Assert.That(monitor1, Is.Not.Null);
+        Assert.That(monitor1, Is.SameAs(monitor2));
+    }
+
+    [Test]
+    public void AddDotSerialMonitor_WithExplicitInterval_RegistersMonitor()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging();
+        services.AddDotSerial();
+        services.AddDotSerialMonitor(TimeSpan.FromMilliseconds(500));
+
+        var provider = services.BuildServiceProvider();
+        var monitor = provider.GetRequiredService<ISerialPortMonitor>();
+        Assert.That(monitor, Is.Not.Null);
+    }
+
+    [Test]
+    public void AddDotSerialMonitor_RequiresAddDotSerial_OrThrowsOnResolve()
+    {
+        // ISerialPortMonitor depends on ISerialPortFactory being registered.
+        var services = new ServiceCollection();
+        services.AddLogging();
+        // Intentionally NOT calling AddDotSerial()
+        services.AddDotSerialMonitor();
+
+        var provider = services.BuildServiceProvider();
+        Assert.Throws<InvalidOperationException>(() =>
+            provider.GetRequiredService<ISerialPortMonitor>());
+    }
 }

@@ -2,9 +2,9 @@ name: CI
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [ main, develop, dev ]
   pull_request:
-    branches: [ main, develop ]
+    branches: [ main, develop, dev ]
 
 jobs:
   build-and-test:
@@ -25,6 +25,13 @@ jobs:
         uses: actions/setup-dotnet@v4
         with:
           dotnet-version: '10.0.x'
+
+      - name: Install .NET workloads (Android — all platforms)
+        run: dotnet workload install android
+
+      - name: Install .NET workloads (iOS — macOS only)
+        if: matrix.os == 'macos-latest'
+        run: dotnet workload install ios
 
       - name: Restore
         run: dotnet restore

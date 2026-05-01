@@ -98,6 +98,12 @@ internal sealed class DesktopSerialPort : Abstractions.ISerialPort
         {
             throw new Exceptions.SerialPortNotFoundException(PortName, ex);
         }
+        catch (UnauthorizedAccessException ex) when (ex.InnerException is System.IO.IOException)
+        {
+            // On Linux/macOS, opening a non-existent port throws UnauthorizedAccessException
+            // wrapping an IOException ("No such file or directory").
+            throw new Exceptions.SerialPortNotFoundException(PortName, ex);
+        }
         catch (TimeoutException ex)
         {
             throw new Exceptions.SerialPortTimeoutException($"Timeout opening port '{PortName}'.", ex);
