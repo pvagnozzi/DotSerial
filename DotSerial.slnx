@@ -1,0 +1,9 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/DotSerial/DotSerial.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/DotSerial.Tests.Unit/DotSerial.Tests.Unit.csproj" />
+    <Project Path="tests/DotSerial.Tests.Integration/DotSerial.Tests.Integration.csproj" />
+  </Folder>
+</Solution>

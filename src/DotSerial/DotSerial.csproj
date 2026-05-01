@@ -1,0 +1,59 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net10.0;net10.0-android;net10.0-ios</TargetFrameworks>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <LangVersion>latest</LangVersion>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+
+    <!-- NuGet metadata -->
+    <PackageId>DotSerial</PackageId>
+    <Version>1.0.0</Version>
+    <Authors>Piergiorgio Vagnozzi</Authors>
+    <Company>Piergiorgio Vagnozzi</Company>
+    <Product>DotSerial</Product>
+    <Description>A cross-platform serial port library for .NET supporting classic and stream-based I/O on Windows, Linux, macOS, Android, and iOS.</Description>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageProjectUrl>https://github.com/pvagnozzi/DotSerial</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/pvagnozzi/DotSerial</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>serial;serialport;com;uart;cross-platform;dotnet;maui</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <EnforceCodeStyleInBuild>false</EnforceCodeStyleInBuild>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Include="..\..\README.md" Pack="true" PackagePath="\"/>
+  </ItemGroup>
+
+  <!-- All platforms: logging -->
+  <ItemGroup>
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.*" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection.Abstractions" Version="10.0.*" />
+  </ItemGroup>
+
+  <!-- Desktop (Windows, Linux, macOS) only -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <PackageReference Include="System.IO.Ports" Version="9.0.*" />
+  </ItemGroup>
+
+  <!-- Exclude platform-specific files from wrong targets -->
+  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
+    <Compile Remove="Internal\Desktop\DesktopSerialPort.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-android'">
+    <Compile Remove="Internal\Android\AndroidSerialPort.cs" />
+  </ItemGroup>
+  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-ios'">
+    <Compile Remove="Internal\iOS\iOSSerialPort.cs" />
+  </ItemGroup>
+
+</Project>
