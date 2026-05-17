@@ -15,9 +15,9 @@ namespace DotSerial.Internal.Desktop;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Source-generated high-performance log helpers for <see cref="DesktopSerialPortMonitor"/>.
+/// Source-generated high-performance log helpers for <see cref="WindowsSerialPortMonitor"/>.
 /// </summary>
-internal static partial class DesktopSerialPortMonitorLog
+internal static partial class WindowsSerialPortMonitorLog
 {
     [LoggerMessage(1007, LogLevel.Information, "Serial port monitor started (polling every {IntervalMs} ms).")]
     internal static partial void MonitorStarted(this ILogger logger, double intervalMs);

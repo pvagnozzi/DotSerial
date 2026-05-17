@@ -12,15 +12,17 @@
 
 namespace DotSerial.Internal.Desktop;
 
+using DotSerial.Config;
+using DotSerial.Internal.Windows;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// Source-generated high-performance log helpers for <see cref="DesktopSerialPort"/>.
+/// Source-generated high-performance log helpers for <see cref="WindowsSerialPort"/>.
 /// </summary>
-internal static partial class DesktopSerialPortLog
+internal static partial class WindowsSerialPortLog
 {
     [LoggerMessage(1001, LogLevel.Information, "Opening serial port {PortName} at {BaudRate} bps.")]
-    internal static partial void PortOpening(this ILogger logger, string portName, int baudRate);
+    internal static partial void PortOpening(this ILogger logger, string portName, BaudRate baudRate);
 
     [LoggerMessage(1002, LogLevel.Information, "Serial port {PortName} opened successfully.")]
     internal static partial void PortOpened(this ILogger logger, string portName);

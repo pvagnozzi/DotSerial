@@ -10,6 +10,7 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
+#if IOS
 namespace DotSerial.Internal.iOS;
 
 using ExternalAccessory;
@@ -200,3 +201,4 @@ internal sealed class iOSSerialPortMonitor : Abstractions.ISerialPortMonitor
         }
     }
 }
+#endif

@@ -21,10 +21,10 @@ using Microsoft.Extensions.Logging;
 /// interval and raises <see cref="Abstractions.ISerialPortMonitor.PortsChanged"/> when the
 /// set of available ports changes.
 /// </summary>
-internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
+internal sealed class WindowsSerialPortMonitor : Abstractions.ISerialPortMonitor
 {
     private readonly TimeSpan _pollingInterval;
-    private readonly ILogger<DesktopSerialPortMonitor> _logger;
+    private readonly ILogger<WindowsSerialPortMonitor> _logger;
 
     private volatile IReadOnlyList<string> _currentPorts;
     private CancellationTokenSource? _cts;
@@ -32,7 +32,7 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new <see cref="DesktopSerialPortMonitor"/> that scans every
+    /// Initializes a new <see cref="WindowsSerialPortMonitor"/> that scans every
     /// <paramref name="pollingInterval"/> for serial port changes.
     /// </summary>
     /// <param name="pollingInterval">How often to poll for port changes. Must be positive.</param>
@@ -40,9 +40,9 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="pollingInterval"/> is not positive.
     /// </exception>
-    internal DesktopSerialPortMonitor(
+    internal WindowsSerialPortMonitor(
         TimeSpan pollingInterval,
-        ILogger<DesktopSerialPortMonitor> logger)
+        ILogger<WindowsSerialPortMonitor> logger)
     {
         if (pollingInterval <= TimeSpan.Zero)
         {
@@ -188,6 +188,6 @@ internal sealed class DesktopSerialPortMonitor : Abstractions.ISerialPortMonitor
     /// <summary>Throws <see cref="ObjectDisposedException"/> when already disposed.</summary>
     private void ThrowIfDisposed()
     {
-        if (_disposed) throw new ObjectDisposedException(nameof(DesktopSerialPortMonitor));
+        if (_disposed) throw new ObjectDisposedException(nameof(WindowsSerialPortMonitor));
     }
 }

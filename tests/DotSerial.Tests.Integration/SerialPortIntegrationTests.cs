@@ -12,7 +12,7 @@
 
 namespace DotSerial.Tests.Integration;
 
-using DotSerial.Models;
+using DotSerial.Config;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
 
@@ -37,7 +37,7 @@ public sealed class SerialPortIntegrationTests
         var ports = factory.GetPortNames();
         if (ports.Count == 0) Assert.Ignore(SkipMessage);
 
-        var settings = new SerialPortSettings { PortName = ports[0] };
+        var settings = new SerialPortConfig { PortName = ports[0] };
         using var port = factory.Create(settings);
         Assert.That(port, Is.Not.Null);
         Assert.That(port.PortName, Is.EqualTo(ports[0]));
@@ -50,7 +50,7 @@ public sealed class SerialPortIntegrationTests
         var ports = factory.GetPortNames();
         if (ports.Count == 0) Assert.Ignore(SkipMessage);
 
-        var settings = new SerialPortSettings { PortName = ports[0], ReadTimeout = 1000, WriteTimeout = 1000 };
+        var settings = new SerialPortConfig { PortName = ports[0], ReadTimeout = 1000, WriteTimeout = 1000 };
         using var port = factory.Create(settings);
         port.Open();
         Assert.That(port.IsOpen, Is.True);

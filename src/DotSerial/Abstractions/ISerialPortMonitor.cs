@@ -10,6 +10,8 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
+using DotSerial.Models;
+
 namespace DotSerial.Abstractions;
 
 /// <summary>
@@ -28,7 +30,7 @@ public interface ISerialPortMonitor : IDisposable
     /// Raised on the thread-pool whenever the set of available serial ports changes.
     /// The event is not raised on the UI thread; marshal to the UI thread if needed.
     /// </summary>
-    event EventHandler<Models.PortsChangedEventArgs>? PortsChanged;
+    event EventHandler<PortsChangedEventArgs>? PortsChanged;
 
     /// <summary>Gets the current snapshot of available serial port names.</summary>
     IReadOnlyList<string> CurrentPorts { get; }

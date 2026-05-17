@@ -12,6 +12,7 @@
 
 namespace DotSerial.Internal.Android;
 
+using DotSerial.Config;
 using global::Android.Bluetooth;
 using global::Android.Content;
 using Microsoft.Extensions.Logging;
@@ -24,8 +25,8 @@ using Microsoft.Extensions.Logging;
 /// <para>
 /// Uses the Android Bluetooth API (<c>Android.Bluetooth</c>) to connect to a remote
 /// Bluetooth device that exposes SPP. The MAC address is read from
-/// <see cref="Models.SerialPortSettings.BluetoothAddress"/> (falling back to
-/// <see cref="Models.SerialPortSettings.PortName"/>).
+/// <see cref="SerialPortConfig.BluetoothAddress"/> (falling back to
+/// <see cref="SerialPortConfig.PortName"/>).
 /// </para>
 /// <para>
 /// <b>Prerequisites:</b> <c>BLUETOOTH</c>, <c>BLUETOOTH_ADMIN</c>, and
@@ -51,16 +52,16 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
     /// <summary>
     /// Initializes a new <see cref="AndroidBluetoothSerialPort"/>.
     /// </summary>
-    /// <param name="settings">
-    /// Serial port settings. <see cref="Models.SerialPortSettings.BluetoothAddress"/> (or
-    /// <see cref="Models.SerialPortSettings.PortName"/>) must be the remote device MAC address,
+    /// <param name="config">
+    /// Serial port configuration. <see cref="SerialPortConfig.BluetoothAddress"/> (or
+    /// <see cref="SerialPortConfig.PortName"/>) must be the remote device MAC address,
     /// e.g. <c>"00:11:22:33:44:55"</c>.
     /// </param>
     /// <param name="logger">Logger for diagnostic output.</param>
     internal AndroidBluetoothSerialPort(
-        Models.SerialPortSettings settings,
+        SerialPortConfig config,
         ILogger<AndroidBluetoothSerialPort> logger)
-        : base(settings, logger)
+        : base(config, logger)
     {
     }
 
@@ -91,7 +92,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
         ThrowIfDisposed();
         if (_isOpen) return;
 
-        string macAddress = _settings.BluetoothAddress ?? _settings.PortName;
+        string macAddress = _config.BluetoothAddress ?? _config.PortName;
         _logger.BtOpening(macAddress);
 
         BluetoothAdapter adapter = GetBluetoothAdapter()
@@ -149,7 +150,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
     public override void Close()
     {
         if (!_isOpen) return;
-        string macAddress = _settings.BluetoothAddress ?? _settings.PortName;
+        string macAddress = _config.BluetoothAddress ?? _config.PortName;
         _logger.BtClosing(macAddress);
         StopPolling();
         try { _socket?.Close(); } catch (Java.IO.IOException ex) { _logger.BtCloseError(ex); }
@@ -254,7 +255,7 @@ internal sealed class AndroidBluetoothSerialPort : SerialPortBase
             try
             {
                 if (_inputStream is not null && _inputStream.IsDataAvailable())
-                    OnDataReceived(new Models.SerialDataReceivedEventArgs(Enums.SerialData.Chars));
+                    OnDataReceived(new Models.SerialDataReceivedEventArgs(SerialData.Chars));
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)
             {

@@ -10,13 +10,14 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
-namespace DotSerial.Enums;
+namespace DotSerial.Config;
 
 /// <summary>Type of data received on the serial port.</summary>
 public enum SerialData
 {
     /// <summary>Regular character data received.</summary>
     Chars,
+
     /// <summary>End-of-file character received.</summary>
     Eof,
 }

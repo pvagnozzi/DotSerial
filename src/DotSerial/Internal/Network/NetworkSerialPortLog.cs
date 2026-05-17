@@ -14,9 +14,11 @@ namespace DotSerial.Internal.Network;
 
 using Microsoft.Extensions.Logging;
 
+#pragma warning disable CS1574
 /// <summary>
-/// Source-generated high-performance log helpers for <see cref="NetworkSerialPort"/>.
+/// Source-generated high-performance log helpers for <see cref="DotSerial.Internal.Network.NetworkSerialPort"/>.
 /// </summary>
+#pragma warning restore CS1574
 internal static partial class NetworkSerialPortLog
 {
     [LoggerMessage(4001, LogLevel.Information, "Connecting to TCP serial bridge {Host}:{Port}.")]

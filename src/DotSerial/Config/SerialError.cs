@@ -10,7 +10,7 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
-namespace DotSerial.Enums;
+namespace DotSerial.Config;
 
 /// <summary>Type of error that occurred on the serial port.</summary>
 public enum SerialError

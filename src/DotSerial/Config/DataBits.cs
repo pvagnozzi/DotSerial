@@ -10,7 +10,7 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
-namespace DotSerial.Enums;
+namespace DotSerial.Config;
 
 /// <summary>Number of data bits per byte.</summary>
 public enum DataBits

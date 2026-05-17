@@ -14,7 +14,7 @@
 namespace DotSerial.Tests.Unit.Streams;
 
 using DotSerial.Abstractions;
-using DotSerial.Models;
+using DotSerial.Config;
 using DotSerial.Streams;
 using Microsoft.Extensions.Logging.Abstractions;
 using NSubstitute;
@@ -77,7 +77,7 @@ public sealed class SerialPortStreamWrapperTests
     public void CreateStream_ValidSettings_ReturnsNonNull()
     {
         var factory = new SerialPortFactory(NullLoggerFactory.Instance);
-        var settings = new SerialPortSettings { PortName = "COM1" };
+        var settings = new SerialPortConfig { PortName = "COM1" };
         using var streamWrapper = factory.CreateStream(settings);
         Assert.That(streamWrapper, Is.Not.Null);
         Assert.That(streamWrapper, Is.InstanceOf<ISerialPortStream>());
@@ -87,7 +87,7 @@ public sealed class SerialPortStreamWrapperTests
     public void CreateStream_PortIsAccessibleViaSerialPort()
     {
         var factory = new SerialPortFactory(NullLoggerFactory.Instance);
-        var settings = new SerialPortSettings { PortName = "COM2" };
+        var settings = new SerialPortConfig { PortName = "COM2" };
         using var streamWrapper = factory.CreateStream(settings);
         Assert.That(streamWrapper.SerialPort, Is.Not.Null);
         Assert.That(streamWrapper.SerialPort.PortName, Is.EqualTo("COM2"));

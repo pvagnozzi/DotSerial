@@ -31,8 +31,8 @@ using Microsoft.Extensions.Logging;
 /// </list>
 /// </para>
 /// <para>
-/// <see cref="Models.SerialPortSettings.BluetoothAddress"/> (or
-/// <see cref="Models.SerialPortSettings.PortName"/>) must be the CBPeripheral UUID string
+/// <see cref="SerialPortConfig.BluetoothAddress"/> (or
+/// <see cref="SerialPortConfig.PortName"/>) must be the CBPeripheral UUID string
 /// obtained from a prior Bluetooth scan.
 /// </para>
 /// </remarks>
@@ -66,15 +66,15 @@ internal sealed class iOSBluetoothSerialPort : SerialPortBase
     /// <summary>
     /// Initializes a new instance of <see cref="iOSBluetoothSerialPort"/>.
     /// </summary>
-    /// <param name="settings">
-    /// Serial port settings. <see cref="Models.SerialPortSettings.BluetoothAddress"/> (or
-    /// <see cref="Models.SerialPortSettings.PortName"/>) must be the CBPeripheral UUID string.
+    /// <param name="config">
+    /// Serial port configuration. <see cref="SerialPortConfig.BluetoothAddress"/> (or
+    /// <see cref="SerialPortConfig.PortName"/>) must be the CBPeripheral UUID string.
     /// </param>
     /// <param name="logger">Logger for diagnostic output.</param>
     internal iOSBluetoothSerialPort(
-        Models.SerialPortSettings settings,
+        SerialPortConfig config,
         ILogger<iOSBluetoothSerialPort> logger)
-        : base(settings, logger)
+        : base(config, logger)
     {
     }
 

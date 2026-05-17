@@ -13,7 +13,7 @@
 
 namespace DotSerial.Tests.Unit.Internal.Network;
 
-using DotSerial.Enums;
+using DotSerial.Config;
 using DotSerial.Exceptions;
 using DotSerial.Models;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -27,7 +27,7 @@ public sealed class NetworkSerialPortTests
     [SetUp]
     public void SetUp() => _factory = new SerialPortFactory(NullLoggerFactory.Instance);
 
-    // ── Validation (via SerialPortSettings.Validate) ──────────────────────
+    // ── Validation (via SerialPortConfig.Validate) ────────────────────────
 
     [Test]
     public void Create_ValidNetworkSettings_ReturnsPort()
@@ -46,7 +46,7 @@ public sealed class NetworkSerialPortTests
     [TestCase("192.168.1.1:abc")]
     public void Create_InvalidHostPort_ThrowsSerialPortException(string portName)
     {
-        var settings = new SerialPortSettings
+        var settings = new SerialPortConfig
         {
             PortName = portName,
             ConnectionType = ConnectionType.Network,
@@ -67,7 +67,7 @@ public sealed class NetworkSerialPortTests
     public void BaudRate_ReturnsSettingsBaudRate()
     {
         using var port = _factory.Create(ValidNetworkSettings());
-        Assert.That(port.BaudRate, Is.EqualTo(9600));
+        Assert.That(port.BaudRate, Is.EqualTo(BaudRate.Baud115200));
     }
 
     [Test]
@@ -98,7 +98,7 @@ public sealed class NetworkSerialPortTests
     {
         // Port 9 (discard service) is almost always not listening on localhost;
         // using a high ephemeral port that is very unlikely to be in use.
-        using var port = _factory.Create(new SerialPortSettings
+        using var port = _factory.Create(new SerialPortConfig
         {
             PortName = "127.0.0.1:59998",
             ConnectionType = ConnectionType.Network,
@@ -203,7 +203,7 @@ public sealed class NetworkSerialPortTests
 
     // ── Helpers ───────────────────────────────────────────────────────────
 
-    private static SerialPortSettings ValidNetworkSettings() =>
+    private static SerialPortConfig ValidNetworkSettings() =>
         new()
         {
             PortName = "127.0.0.1:9998",

@@ -11,6 +11,8 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
+using DotSerial.Abstractions;
+
 namespace DotSerial.Streams;
 
 /// <summary>
@@ -33,7 +35,7 @@ namespace DotSerial.Streams;
 /// </code>
 /// </para>
 /// </remarks>
-public sealed class SerialPortStreamWrapper : Abstractions.ISerialPortStream
+public sealed class SerialPortStreamWrapper : ISerialPortStream
 {
     private bool _disposed;
 
@@ -67,7 +69,11 @@ public sealed class SerialPortStreamWrapper : Abstractions.ISerialPortStream
     /// <inheritdoc/>
     public void Dispose()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         SerialPort.Dispose();
     }
@@ -75,7 +81,11 @@ public sealed class SerialPortStreamWrapper : Abstractions.ISerialPortStream
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
-        if (_disposed) return;
+        if (_disposed)
+        {
+            return;
+        }
+
         _disposed = true;
         await SerialPort.DisposeAsync().ConfigureAwait(false);
     }

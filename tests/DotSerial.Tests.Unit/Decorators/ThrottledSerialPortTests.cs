@@ -15,6 +15,7 @@ namespace DotSerial.Tests.Unit.Decorators;
 
 using System.Diagnostics;
 using DotSerial.Abstractions;
+using DotSerial.Config;
 using DotSerial.Decorators;
 using DotSerial.Models;
 using Microsoft.Extensions.Logging.Abstractions;

@@ -12,11 +12,13 @@
 
 namespace DotSerial.Models;
 
+using DotSerial.Config;
+
 /// <summary>Provides data for the <see cref="Abstractions.ISerialPort.ErrorReceived"/> event.</summary>
 /// <remarks>Initializes a new instance with the specified error type.</remarks>
 /// <param name="errorType">The type of error that occurred.</param>
-public sealed class SerialErrorReceivedEventArgs(Enums.SerialError errorType) : EventArgs
+public sealed class SerialErrorReceivedEventArgs(SerialError errorType) : EventArgs
 {
     /// <summary>Gets the type of error that occurred.</summary>
-    public Enums.SerialError ErrorType { get; } = errorType;
+    public SerialError ErrorType { get; } = errorType;
 }

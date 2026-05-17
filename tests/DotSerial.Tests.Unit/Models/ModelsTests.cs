@@ -13,7 +13,7 @@
 
 namespace DotSerial.Tests.Unit.Models;
 
-using DotSerial.Enums;
+using DotSerial.Config;
 using DotSerial.Models;
 using NUnit.Framework;
 

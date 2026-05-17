@@ -10,6 +10,7 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
+#if ANDROID
 namespace DotSerial.Internal.Android;
 
 using global::Android.App;
@@ -230,3 +231,4 @@ internal sealed class AndroidSerialPortMonitor : Abstractions.ISerialPortMonitor
         }
     }
 }
+#endif

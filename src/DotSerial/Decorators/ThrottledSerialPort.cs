@@ -5,105 +5,75 @@
 //     See LICENSE file in the project root for full license information.
 // </copyright>
 // <summary>
-//     Decorator that limits write throughput on any ISerialPort to a configurable
-//     maximum bytes-per-second using a token-bucket algorithm.
+//     Platform-agnostic write-rate limiter decorator for ISerialPort.
 // </summary>
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
 namespace DotSerial.Decorators;
 
+using DotSerial.Abstractions;
+using DotSerial.Models;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
-/// A decorator for <see cref="Abstractions.ISerialPort"/> that throttles write
-/// operations to a configurable maximum throughput (bytes per second), preventing
-/// buffer overflow on slow receivers or hardware-constrained devices.
+/// Platform-agnostic decorator that wraps any <see cref="ISerialPort"/> and applies
+/// a token-bucket write-rate limit to control the throughput of data transmitted.
 /// </summary>
 /// <remarks>
-/// The throttle is applied to all synchronous and asynchronous write methods.
-/// Read operations and all other members are delegated to the wrapped port unchanged.
-/// The implementation uses a token-bucket algorithm: tokens are replenished at
-/// <c>maxBytesPerSecond</c> per second, and each write consumes tokens equal to
-/// the number of bytes being written. If insufficient tokens are available the
-/// call sleeps for the exact duration needed before proceeding.
+/// <para>
+/// This decorator implements a token-bucket algorithm for write throttling:
+/// <list type="bullet">
+///   <item>Each call to <see cref="Write(byte[], int, int)"/> or <see cref="WriteAsync(byte[], int, int, CancellationToken)"/>
+///   consumes tokens equal to the number of bytes written.</item>
+///   <item>Tokens are regenerated at a fixed rate (specified in bytes per second).</item>
+///   <item>If tokens are insufficient, the write operation blocks or asynchronously waits.</item>
+///   <item>Synchronous writes use Thread.Sleep; asynchronous writes use Task.Delay.</item>
+/// </list>
+/// </para>
+/// <para>
+/// All read operations, properties, and events are delegated unmodified to the wrapped port.
+/// Thread-safety is ensured via a <see cref="SemaphoreSlim"/> for token-bucket state.
+/// </para>
 /// </remarks>
-public sealed class ThrottledSerialPort : Abstractions.ISerialPort
+internal sealed class ThrottledSerialPort : ISerialPort
 {
-    private readonly Abstractions.ISerialPort _inner;
-    private readonly int _maxBytesPerSecond;
+    private readonly ISerialPort _inner;
     private readonly ILogger<ThrottledSerialPort> _logger;
+    private readonly int _maxBytesPerSecond;
+    private readonly SemaphoreSlim _bucketLock;
 
-    // Token-bucket state — all access serialised through _bucketLock.
-    private readonly SemaphoreSlim _bucketLock = new(1, 1);
-    private double _availableTokens;
-    private DateTime _lastRefill;
-
+    private double _tokens;
+    private DateTime _lastRefillTime;
     private bool _disposed;
 
     /// <summary>
-    /// Initializes a new <see cref="ThrottledSerialPort"/> that wraps
-    /// <paramref name="inner"/> and limits writes to <paramref name="maxBytesPerSecond"/>.
+    /// Initializes a new <see cref="ThrottledSerialPort"/> that wraps the specified port
+    /// with a write-rate limit.
     /// </summary>
-    /// <param name="inner">The underlying serial port to wrap. Must not be <see langword="null"/>.</param>
-    /// <param name="maxBytesPerSecond">
-    /// Maximum write throughput in bytes per second. Must be greater than zero.
-    /// </param>
-    /// <param name="logger">Logger for diagnostic output.</param>
+    /// <param name="inner">The underlying serial port implementation to wrap.</param>
+    /// <param name="maxBytesPerSecond">The maximum write rate in bytes per second.</param>
+    /// <param name="logger">The logger for diagnostic output.</param>
     /// <exception cref="ArgumentNullException">
     /// Thrown when <paramref name="inner"/> or <paramref name="logger"/> is <see langword="null"/>.
     /// </exception>
     /// <exception cref="ArgumentOutOfRangeException">
     /// Thrown when <paramref name="maxBytesPerSecond"/> is less than or equal to zero.
     /// </exception>
-    public ThrottledSerialPort(
-        Abstractions.ISerialPort inner,
-        int maxBytesPerSecond,
-        ILogger<ThrottledSerialPort> logger)
+    internal ThrottledSerialPort(ISerialPort inner, int maxBytesPerSecond, ILogger<ThrottledSerialPort> logger)
     {
         ArgumentNullException.ThrowIfNull(inner);
         ArgumentNullException.ThrowIfNull(logger);
-
         if (maxBytesPerSecond <= 0)
-        {
-            throw new ArgumentOutOfRangeException(
-                nameof(maxBytesPerSecond),
-                maxBytesPerSecond,
-                "Maximum bytes per second must be greater than zero.");
-        }
+            throw new ArgumentOutOfRangeException(nameof(maxBytesPerSecond), maxBytesPerSecond, "Must be greater than zero.");
 
         _inner = inner;
         _maxBytesPerSecond = maxBytesPerSecond;
         _logger = logger;
-        _availableTokens = maxBytesPerSecond;
-        _lastRefill = DateTime.UtcNow;
+        _bucketLock = new SemaphoreSlim(1, 1);
+        _tokens = _maxBytesPerSecond; // Start with a full bucket.
+        _lastRefillTime = DateTime.UtcNow;
     }
-
-    // ── ISerialPort – Properties (all delegated) ───────────────────────────
-
-    /// <inheritdoc/>
-    public string PortName => _inner.PortName;
-
-    /// <inheritdoc/>
-    public int BaudRate => _inner.BaudRate;
-
-    /// <inheritdoc/>
-    public Enums.Parity Parity => _inner.Parity;
-
-    /// <inheritdoc/>
-    public int DataBits => _inner.DataBits;
-
-    /// <inheritdoc/>
-    public Enums.StopBits StopBits => _inner.StopBits;
-
-    /// <inheritdoc/>
-    public Enums.FlowControl FlowControl => _inner.FlowControl;
-
-    /// <inheritdoc/>
-    public int ReadTimeout { get => _inner.ReadTimeout; set => _inner.ReadTimeout = value; }
-
-    /// <inheritdoc/>
-    public int WriteTimeout { get => _inner.WriteTimeout; set => _inner.WriteTimeout = value; }
 
     /// <inheritdoc/>
     public bool IsOpen => _inner.IsOpen;
@@ -117,257 +87,264 @@ public sealed class ThrottledSerialPort : Abstractions.ISerialPort
     /// <inheritdoc/>
     public Stream BaseStream => _inner.BaseStream;
 
-    // ── ISerialPort – Events (all delegated) ──────────────────────────────
+    /// <inheritdoc/>
+    public int ReadTimeout
+    {
+        get => _inner.ReadTimeout;
+        set => _inner.ReadTimeout = value;
+    }
 
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialDataReceivedEventArgs>? DataReceived
+    public int WriteTimeout
+    {
+        get => _inner.WriteTimeout;
+        set => _inner.WriteTimeout = value;
+    }
+
+    /// <inheritdoc/>
+    public event EventHandler<SerialDataReceivedEventArgs>? DataReceived
     {
         add => _inner.DataReceived += value;
         remove => _inner.DataReceived -= value;
     }
 
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialErrorReceivedEventArgs>? ErrorReceived
+    public event EventHandler<SerialErrorReceivedEventArgs>? ErrorReceived
     {
         add => _inner.ErrorReceived += value;
         remove => _inner.ErrorReceived -= value;
     }
 
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialPinChangedEventArgs>? PinChanged
+    public event EventHandler<SerialPinChangedEventArgs>? PinChanged
     {
         add => _inner.PinChanged += value;
         remove => _inner.PinChanged -= value;
     }
 
-    // ── Lifecycle (delegated) ─────────────────────────────────────────────
-
     /// <inheritdoc/>
     public void Open()
     {
-        ThrowIfDisposed();
         _inner.Open();
     }
 
     /// <inheritdoc/>
-    public Task OpenAsync(CancellationToken cancellationToken = default)
+    public async Task OpenAsync(CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
-        return _inner.OpenAsync(cancellationToken);
+        await _inner.OpenAsync(cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public void Close() => _inner.Close();
+    public void Close()
+    {
+        _inner.Close();
+    }
 
     /// <inheritdoc/>
-    public Task CloseAsync(CancellationToken cancellationToken = default)
-        => _inner.CloseAsync(cancellationToken);
-
-    // ── Write (throttled) ─────────────────────────────────────────────────
+    public async Task CloseAsync(CancellationToken cancellationToken = default)
+    {
+        await _inner.CloseAsync(cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc/>
     public void Write(byte[] buffer, int offset, int count)
     {
-        ThrowIfDisposed();
-        ThrottleSync(count);
+        ThrottleWrite(count, waitMs: -1);
         _inner.Write(buffer, offset, count);
-    }
-
-    /// <inheritdoc/>
-    public void Write(string text)
-    {
-        ThrowIfDisposed();
-        ThrottleSync(System.Text.Encoding.UTF8.GetByteCount(text));
-        _inner.Write(text);
-    }
-
-    /// <inheritdoc/>
-    public void WriteLine(string text)
-    {
-        ThrowIfDisposed();
-        ThrottleSync(System.Text.Encoding.UTF8.GetByteCount(text) + Environment.NewLine.Length);
-        _inner.WriteLine(text);
     }
 
     /// <inheritdoc/>
     public async Task WriteAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
-        await ThrottleAsync(count, cancellationToken).ConfigureAwait(false);
+        await ThrottleWriteAsync(count, cancellationToken).ConfigureAwait(false);
         await _inner.WriteAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
     public async Task WriteAsync(ReadOnlyMemory<byte> buffer, CancellationToken cancellationToken = default)
     {
-        ThrowIfDisposed();
-        await ThrottleAsync(buffer.Length, cancellationToken).ConfigureAwait(false);
+        await ThrottleWriteAsync(buffer.Length, cancellationToken).ConfigureAwait(false);
         await _inner.WriteAsync(buffer, cancellationToken).ConfigureAwait(false);
     }
 
     /// <inheritdoc/>
-    public async Task WriteLineAsync(string text, CancellationToken cancellationToken = default)
+    public int Read(byte[] buffer, int offset, int count)
     {
-        ThrowIfDisposed();
-        await ThrottleAsync(
-            System.Text.Encoding.UTF8.GetByteCount(text) + Environment.NewLine.Length,
-            cancellationToken).ConfigureAwait(false);
-        await _inner.WriteLineAsync(text, cancellationToken).ConfigureAwait(false);
+        return _inner.Read(buffer, offset, count);
     }
 
-    // ── Read (all delegated unchanged) ────────────────────────────────────
+    /// <inheritdoc/>
+    public int ReadByte()
+    {
+        return _inner.ReadByte();
+    }
 
     /// <inheritdoc/>
-    public int Read(byte[] buffer, int offset, int count) => _inner.Read(buffer, offset, count);
+    public byte[] ReadExisting()
+    {
+        return _inner.ReadExisting();
+    }
 
     /// <inheritdoc/>
-    public int ReadByte() => _inner.ReadByte();
+    public async Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken = default)
+    {
+        return await _inner.ReadAsync(buffer, offset, count, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc/>
-    public string ReadExisting() => _inner.ReadExisting();
+    public async Task<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
+    {
+        return await _inner.ReadAsync(buffer, cancellationToken).ConfigureAwait(false);
+    }
 
     /// <inheritdoc/>
-    public string ReadLine() => _inner.ReadLine();
+    public void DiscardInBuffer()
+    {
+        _inner.DiscardInBuffer();
+    }
 
     /// <inheritdoc/>
-    public string ReadTo(string value) => _inner.ReadTo(value);
+    public void DiscardOutBuffer()
+    {
+        _inner.DiscardOutBuffer();
+    }
 
-    /// <inheritdoc/>
-    public Task<int> ReadAsync(byte[] buffer, int offset, int count, CancellationToken cancellationToken = default)
-        => _inner.ReadAsync(buffer, offset, count, cancellationToken);
+    /// <summary>
+    /// Synchronously waits until sufficient tokens are available to transmit <paramref name="byteCount"/> bytes.
+    /// </summary>
+    /// <param name="byteCount">The number of bytes to consume from the token bucket.</param>
+    /// <param name="waitMs">The maximum time to wait in milliseconds. Use -1 for infinite wait.</param>
+    /// <remarks>
+    /// This method blocks the current thread using Thread.Sleep if tokens are insufficient.
+    /// </remarks>
+    private void ThrottleWrite(int byteCount, int waitMs = -1)
+    {
+        var remaining = byteCount;
+        var deadline = waitMs < 0 ? DateTime.MaxValue : DateTime.UtcNow.AddMilliseconds(waitMs);
 
-    /// <inheritdoc/>
-    public Task<int> ReadAsync(Memory<byte> buffer, CancellationToken cancellationToken = default)
-        => _inner.ReadAsync(buffer, cancellationToken);
+        while (remaining > 0)
+        {
+            _bucketLock.Wait();
+            try
+            {
+                RefillTokens();
 
-    /// <inheritdoc/>
-    public Task<string> ReadLineAsync(CancellationToken cancellationToken = default)
-        => _inner.ReadLineAsync(cancellationToken);
+                if (_tokens >= remaining)
+                {
+                    _tokens -= remaining;
+                    remaining = 0;
+                }
+                else
+                {
+                    remaining -= (int)_tokens;
+                    _tokens = 0;
 
-    // ── Buffer Management (delegated) ────────────────────────────────────
+                    // Calculate how long to sleep.
+                    var tokensNeeded = remaining;
+                    var sleepSeconds = (double)tokensNeeded / _maxBytesPerSecond;
+                    var sleepMs = Math.Max(1, (int)(sleepSeconds * 1000));
 
-    /// <inheritdoc/>
-    public void DiscardInBuffer() => _inner.DiscardInBuffer();
+                    if (DateTime.UtcNow.AddMilliseconds(sleepMs) > deadline)
+                        throw new TimeoutException("Write throttle timeout.");
 
-    /// <inheritdoc/>
-    public void DiscardOutBuffer() => _inner.DiscardOutBuffer();
+                    _logger.LogTrace("Throttling write: {ByteCount} bytes, sleeping {SleepMs}ms.",
+                        byteCount, sleepMs);
 
-    // ── IDisposable / IAsyncDisposable ─────────────────────────────────────
+                    Thread.Sleep(sleepMs);
+                }
+            }
+            finally
+            {
+                _bucketLock.Release();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Asynchronously waits until sufficient tokens are available to transmit <paramref name="byteCount"/> bytes.
+    /// </summary>
+    /// <param name="byteCount">The number of bytes to consume from the token bucket.</param>
+    /// <param name="cancellationToken">The cancellation token.</param>
+    /// <remarks>
+    /// This method asynchronously waits using Task.Delay if tokens are insufficient.
+    /// </remarks>
+    private async Task ThrottleWriteAsync(int byteCount, CancellationToken cancellationToken)
+    {
+        var remaining = byteCount;
+
+        while (remaining > 0)
+        {
+            await _bucketLock.WaitAsync(cancellationToken).ConfigureAwait(false);
+            try
+            {
+                RefillTokens();
+
+                if (_tokens >= remaining)
+                {
+                    _tokens -= remaining;
+                    remaining = 0;
+                }
+                else
+                {
+                    remaining -= (int)_tokens;
+                    _tokens = 0;
+
+                    var tokensNeeded = remaining;
+                    var sleepSeconds = (double)tokensNeeded / _maxBytesPerSecond;
+                    var sleepMs = Math.Max(1, (int)(sleepSeconds * 1000));
+
+                    _logger.LogTrace("Throttling async write: {ByteCount} bytes, delaying {DelayMs}ms.",
+                        byteCount, sleepMs);
+
+                    await Task.Delay(sleepMs, cancellationToken).ConfigureAwait(false);
+                }
+            }
+            finally
+            {
+                _bucketLock.Release();
+            }
+        }
+    }
+
+    /// <summary>
+    /// Refills the token bucket based on elapsed time since the last refill.
+    /// </summary>
+    /// <remarks>
+    /// Caller must hold <see cref="_bucketLock"/>.
+    /// </remarks>
+    private void RefillTokens()
+    {
+        var now = DateTime.UtcNow;
+        var elapsed = now - _lastRefillTime;
+        var tokensToAdd = elapsed.TotalSeconds * _maxBytesPerSecond;
+        _tokens = Math.Min(_tokens + tokensToAdd, _maxBytesPerSecond);
+        _lastRefillTime = now;
+    }
+
+    /// <summary>
+    /// Throws <see cref="ObjectDisposedException"/> if the port has been disposed.
+    /// </summary>
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(ThrottledSerialPort));
+    }
 
     /// <inheritdoc/>
     public void Dispose()
     {
         if (_disposed) return;
-        _disposed = true;
         _bucketLock.Dispose();
         _inner.Dispose();
+        _disposed = true;
     }
 
     /// <inheritdoc/>
     public async ValueTask DisposeAsync()
     {
         if (_disposed) return;
-        _disposed = true;
         _bucketLock.Dispose();
         await _inner.DisposeAsync().ConfigureAwait(false);
-    }
-
-    // ── Token-bucket internals ─────────────────────────────────────────────
-
-    /// <summary>
-    /// Synchronous throttle: blocks the calling thread for the exact duration needed
-    /// to honour the configured rate limit before the write proceeds.
-    /// </summary>
-    /// <param name="byteCount">Number of bytes about to be written.</param>
-    private void ThrottleSync(int byteCount)
-    {
-        if (byteCount <= 0)
-        {
-            return;
-        }
-
-        _bucketLock.Wait();
-        try
-        {
-            var delayMs = ComputeDelayAndConsumeTokens(byteCount);
-            if (delayMs > 0)
-            {
-                _logger.ThrottlingSync(byteCount, PortName, delayMs);
-                Thread.Sleep(delayMs);
-            }
-        }
-        finally
-        {
-            _bucketLock.Release();
-        }
-    }
-
-    /// <summary>
-    /// Asynchronous throttle: awaits <c>Task.Delay</c> for the exact duration
-    /// needed to honour the configured rate limit before the write proceeds.
-    /// </summary>
-    /// <param name="byteCount">Number of bytes about to be written.</param>
-    /// <param name="cancellationToken">Token to cancel the wait.</param>
-    private async Task ThrottleAsync(int byteCount, CancellationToken cancellationToken)
-    {
-        if (byteCount <= 0)
-        {
-            return;
-        }
-
-        await _bucketLock.WaitAsync(cancellationToken).ConfigureAwait(false);
-        try
-        {
-            var delayMs = ComputeDelayAndConsumeTokens(byteCount);
-            if (delayMs > 0)
-            {
-                _logger.ThrottlingAsync(byteCount, PortName, delayMs);
-                await Task.Delay(delayMs, cancellationToken).ConfigureAwait(false);
-            }
-        }
-        finally
-        {
-            _bucketLock.Release();
-        }
-    }
-
-    /// <summary>
-    /// Refills the token bucket based on elapsed time, computes how long to wait
-    /// (if the bucket cannot cover <paramref name="byteCount"/> immediately), and
-    /// deducts the tokens. Must be called while <c>_bucketLock</c> is held.
-    /// </summary>
-    /// <param name="byteCount">Number of tokens (bytes) to consume.</param>
-    /// <returns>Milliseconds to wait before writing; zero if tokens are sufficient.</returns>
-    private int ComputeDelayAndConsumeTokens(int byteCount)
-    {
-        var now = DateTime.UtcNow;
-        var elapsed = (now - _lastRefill).TotalSeconds;
-
-        // Refill tokens proportionally to elapsed time, capped at the bucket size.
-        _availableTokens = Math.Min(
-            _maxBytesPerSecond,
-            _availableTokens + elapsed * _maxBytesPerSecond);
-        _lastRefill = now;
-
-        if (_availableTokens >= byteCount)
-        {
-            _availableTokens -= byteCount;
-            return 0;
-        }
-
-        // Calculate the delay required for sufficient tokens to accumulate.
-        var deficit = byteCount - _availableTokens;
-        var delayMs = (int)Math.Ceiling(deficit / _maxBytesPerSecond * 1000.0);
-        _availableTokens = 0;
-        return delayMs;
-    }
-
-    /// <summary>Throws <see cref="ObjectDisposedException"/> if this instance has been disposed.</summary>
-    private void ThrowIfDisposed()
-    {
-        if (_disposed)
-        {
-            throw new ObjectDisposedException(nameof(ThrottledSerialPort));
-        }
+        _disposed = true;
     }
 }

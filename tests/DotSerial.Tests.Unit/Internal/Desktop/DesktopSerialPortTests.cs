@@ -12,6 +12,7 @@
 
 namespace DotSerial.Tests.Unit.Internal.Desktop;
 
+using DotSerial.Config;
 using DotSerial.Exceptions;
 using DotSerial.Models;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -34,8 +35,8 @@ public sealed class DesktopSerialPortTests
         _loggerFactory.Dispose();
     }
 
-    private static SerialPortSettings ValidSettings(string portName = "COM1") =>
-        new() { PortName = portName, BaudRate = 9600 };
+    private static SerialPortConfig ValidSettings(string portName = "COM1") =>
+        new() { PortName = portName, BaudRate = BaudRate.Baud9600 };
 
     [Test]
     public void Create_ValidSettings_PortIsNotOpen()
@@ -112,10 +113,10 @@ public sealed class DesktopSerialPortTests
     }
 
     [Test]
-    public void Create_EmptyPortName_ThrowsSerialPortException()
+    public void Create_EmptyPortName_ThrowsArgumentException()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        Assert.Throws<SerialPortException>(() => factory.Create(new SerialPortSettings { PortName = "" }));
+        Assert.Throws<ArgumentException>(() => factory.Create(new SerialPortConfig { PortName = "" }));
     }
 
     [Test]

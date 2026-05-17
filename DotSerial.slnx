@@ -1,5 +1,5 @@
 <Solution>
-  <Folder Name="/Elementi di soluzione/">
+  <Folder Name="/Soltuion/">
     <File Path=".editorconfig" />
     <File Path=".gitignore" />
     <File Path="CHANGELOG.md" />
@@ -11,7 +11,7 @@
     <Project Path="src/DotSerial/DotSerial.csproj" />
   </Folder>
   <Folder Name="/tests/">
-    <Project Path="tests/DotSerial.Tests.Unit/DotSerial.Tests.Unit.csproj" />
     <Project Path="tests/DotSerial.Tests.Integration/DotSerial.Tests.Integration.csproj" />
+    <Project Path="tests/DotSerial.Tests.Unit/DotSerial.Tests.Unit.csproj" />
   </Folder>
 </Solution>

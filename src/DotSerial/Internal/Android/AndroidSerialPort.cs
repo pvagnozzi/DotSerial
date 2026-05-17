@@ -12,6 +12,7 @@
 
 namespace DotSerial.Internal.Android;
 
+using DotSerial.Config;
 using global::Android.Hardware.Usb;
 using Microsoft.Extensions.Logging;
 
@@ -63,12 +64,12 @@ internal sealed class AndroidSerialPort : SerialPortBase
     /// <summary>
     /// Initializes a new instance of <see cref="AndroidSerialPort"/>.
     /// </summary>
-    /// <param name="settings">The serial port configuration settings.</param>
+    /// <param name="config">The serial port configuration settings.</param>
     /// <param name="logger">The logger instance.</param>
     internal AndroidSerialPort(
-        Models.SerialPortSettings settings,
+        SerialPortConfig config,
         ILogger<AndroidSerialPort> logger)
-        : base(settings, logger)
+        : base(config, logger)
     {
     }
 
@@ -289,33 +290,33 @@ internal sealed class AndroidSerialPort : SerialPortBase
     /// <summary>Sends the CDC SET_LINE_CODING control request to configure baud rate, stop bits, parity, and data bits.</summary>
     private void SendSetLineCoding()
     {
-        byte stopBitsByte = _settings.StopBits switch
+        byte stopBitsByte = _config.StopBits switch
         {
-            Enums.StopBits.One => 0,
-            Enums.StopBits.OnePointFive => 1,
-            Enums.StopBits.Two => 2,
+            Config.StopBits.One => 0,
+            Config.StopBits.OnePointFive => 1,
+            Config.StopBits.Two => 2,
             _ => 0
         };
 
-        byte parityByte = _settings.Parity switch
+        byte parityByte = _config.Parity switch
         {
-            Enums.Parity.None => 0,
-            Enums.Parity.Odd => 1,
-            Enums.Parity.Even => 2,
-            Enums.Parity.Mark => 3,
-            Enums.Parity.Space => 4,
+            Config.Parity.None => 0,
+            Config.Parity.Odd => 1,
+            Config.Parity.Even => 2,
+            Config.Parity.Mark => 3,
+            Config.Parity.Space => 4,
             _ => 0
         };
 
         var lineCoding = new byte[7];
-        var baud = (uint)BaudRate;
+        var baud = (uint)_config.BaudRate;
         lineCoding[0] = (byte)(baud & 0xFF);
         lineCoding[1] = (byte)((baud >> 8) & 0xFF);
         lineCoding[2] = (byte)((baud >> 16) & 0xFF);
         lineCoding[3] = (byte)((baud >> 24) & 0xFF);
         lineCoding[4] = stopBitsByte;
         lineCoding[5] = parityByte;
-        lineCoding[6] = (byte)DataBits;
+        lineCoding[6] = (byte)_config.DataBits;
 
         _connection!.ControlTransfer(
             (UsbAddressing)ClassInterfaceHostToDevice,
@@ -359,7 +360,7 @@ internal sealed class AndroidSerialPort : SerialPortBase
     /// <summary>Background loop that fires <see cref="SerialPortBase.DataReceived"/> when bytes are available.</summary>
     private async Task PollLoopAsync(CancellationToken ct)
     {
-        var buffer = new byte[_settings.ReadBufferSize];
+        var buffer = new byte[_config.ReadBufferSize];
         while (!ct.IsCancellationRequested && _isOpen)
         {
             try
@@ -368,7 +369,7 @@ internal sealed class AndroidSerialPort : SerialPortBase
                 if (n > 0)
                 {
                     _stream?.EnqueueReceived(buffer, n);
-                    OnDataReceived(new Models.SerialDataReceivedEventArgs(Enums.SerialData.Chars));
+                    OnDataReceived(new Models.SerialDataReceivedEventArgs(SerialData.Chars));
                 }
             }
             catch (Exception ex) when (!ct.IsCancellationRequested)

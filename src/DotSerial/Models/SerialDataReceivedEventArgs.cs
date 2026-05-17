@@ -12,11 +12,13 @@
 
 namespace DotSerial.Models;
 
+using DotSerial.Config;
+
 /// <summary>Provides data for the <see cref="Abstractions.ISerialPort.DataReceived"/> event.</summary>
 /// <remarks>Initializes a new instance with the specified event type.</remarks>
 /// <param name="eventType">The type of data-received event.</param>
-public sealed class SerialDataReceivedEventArgs(Enums.SerialData eventType) : EventArgs
+public sealed class SerialDataReceivedEventArgs(SerialData eventType) : EventArgs
 {
     /// <summary>Gets the type of data-received event.</summary>
-    public Enums.SerialData EventType { get; } = eventType;
+    public SerialData EventType { get; } = eventType;
 }

@@ -13,13 +13,16 @@
 namespace DotSerial;
 
 using System.Runtime.InteropServices;
+using DotSerial.Abstractions;
+using DotSerial.Config;
+using DotSerial.Models;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Platform-aware factory that creates the correct <see cref="Abstractions.ISerialPort"/>
 /// implementation for the current runtime platform.
 /// </summary>
-public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
+public sealed class SerialPortFactory : ISerialPortFactory
 {
     private readonly ILoggerFactory _loggerFactory;
 
@@ -32,46 +35,46 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
     }
 
     /// <inheritdoc/>
-    public Abstractions.ISerialPort Create(Models.SerialPortSettings settings)
+    public ISerialPort Create(SerialPortConfig config)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        settings.Validate();
+        ArgumentNullException.ThrowIfNull(config);
+        config.Validate();
 
-        // Network is cross-platform — handle first before any platform fork.
-        if (settings.ConnectionType == Enums.ConnectionType.Network)
+
+#if ANDROID
+        return config.ConnectionType == ConnectionType.Bluetooth
+            ? new Internal.Android.AndroidBluetoothSerialPort(
+                config,
+                _loggerFactory.CreateLogger<Internal.Android.AndroidBluetoothSerialPort>())
+            : new Internal.Android.AndroidSerialPort(
+                config,
+                _loggerFactory.CreateLogger<Internal.Android.AndroidSerialPort>());
+#elif IOS
+        return config.ConnectionType == ConnectionType.Bluetooth
+            ? new Internal.iOS.iOSBluetoothSerialPort(
+                config,
+                _loggerFactory.CreateLogger<Internal.iOS.iOSBluetoothSerialPort>())
+            : new Internal.iOS.iOSSerialPort(
+                config,
+                _loggerFactory.CreateLogger<Internal.iOS.iOSSerialPort>());
+#else
+        if (config.ConnectionType == ConnectionType.Network)
         {
             return new Internal.Network.NetworkSerialPort(
-                settings,
+                config,
                 _loggerFactory.CreateLogger<Internal.Network.NetworkSerialPort>());
         }
 
-#if ANDROID
-        return settings.ConnectionType == Enums.ConnectionType.Bluetooth
-            ? new Internal.Android.AndroidBluetoothSerialPort(
-                settings,
-                _loggerFactory.CreateLogger<Internal.Android.AndroidBluetoothSerialPort>())
-            : new Internal.Android.AndroidSerialPort(
-                settings,
-                _loggerFactory.CreateLogger<Internal.Android.AndroidSerialPort>());
-#elif IOS
-        return settings.ConnectionType == Enums.ConnectionType.Bluetooth
-            ? new Internal.iOS.iOSBluetoothSerialPort(
-                settings,
-                _loggerFactory.CreateLogger<Internal.iOS.iOSBluetoothSerialPort>())
-            : new Internal.iOS.iOSSerialPort(
-                settings,
-                _loggerFactory.CreateLogger<Internal.iOS.iOSSerialPort>());
-#else
-        if (settings.ConnectionType != Enums.ConnectionType.Serial)
+        if (config.ConnectionType != ConnectionType.Serial)
         {
             throw new PlatformNotSupportedException(
-                $"ConnectionType '{settings.ConnectionType}' is not supported on desktop platforms. " +
+                $"ConnectionType '{config.ConnectionType}' is not supported on desktop platforms. " +
                 "Use ConnectionType.Serial or ConnectionType.Network.");
         }
 
-        return new Internal.Desktop.DesktopSerialPort(
-            settings,
-            _loggerFactory.CreateLogger<Internal.Desktop.DesktopSerialPort>());
+        return new Internal.Windows.WindowsSerialPort(
+            config,
+            _loggerFactory.CreateLogger<Internal.Windows.WindowsSerialPort>());
 #endif
     }
 
@@ -122,17 +125,17 @@ public sealed class SerialPortFactory : Abstractions.ISerialPortFactory
         if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
             return new Internal.MacOS.MacOSSerialPortMonitor(
                 _loggerFactory.CreateLogger<Internal.MacOS.MacOSSerialPortMonitor>());
-        return new Internal.Desktop.DesktopSerialPortMonitor(
+        return new Internal.Desktop.WindowsSerialPortMonitor(
             interval,
-            _loggerFactory.CreateLogger<Internal.Desktop.DesktopSerialPortMonitor>());
+            _loggerFactory.CreateLogger<Internal.Desktop.WindowsSerialPortMonitor>());
 #endif
     }
 
     /// <inheritdoc/>
-    public Abstractions.ISerialPortStream CreateStream(Models.SerialPortSettings settings)
+    public Abstractions.ISerialPortStream CreateStream(SerialPortConfig config)
     {
-        ArgumentNullException.ThrowIfNull(settings);
-        var port = Create(settings);
+        ArgumentNullException.ThrowIfNull(config);
+        var port = Create(config);
         return new Streams.SerialPortStreamWrapper(port);
     }
 }

@@ -10,6 +10,7 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
+#if IOS
 namespace DotSerial.Internal.iOS;
 
 using ExternalAccessory;
@@ -22,7 +23,7 @@ using Microsoft.Extensions.Logging;
 /// <remarks>
 /// <para>
 /// Communicates with MFi-certified serial accessories via the External Accessory framework.
-/// <see cref="Models.SerialPortSettings.PortName"/> can be either the accessory serial number or
+/// <see cref="SerialPortConfig.PortName"/> can be either the accessory serial number or
 /// a protocol string supported by the accessory.
 /// </para>
 /// <para>
@@ -46,12 +47,12 @@ internal sealed class iOSSerialPort : SerialPortBase
     /// <summary>
     /// Initializes a new instance of <see cref="iOSSerialPort"/>.
     /// </summary>
-    /// <param name="settings">The serial port configuration settings.</param>
+    /// <param name="config">The serial port configuration settings.</param>
     /// <param name="logger">The logger instance.</param>
     internal iOSSerialPort(
-        Models.SerialPortSettings settings,
+        SerialPortConfig config,
         ILogger<iOSSerialPort> logger)
-        : base(settings, logger)
+        : base(config, logger)
     {
     }
 
@@ -310,3 +311,4 @@ internal sealed class iOSSerialPort : SerialPortBase
         public override void SetLength(long value) => throw new NotSupportedException();
     }
 }
+#endif

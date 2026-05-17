@@ -12,11 +12,14 @@
 
 namespace DotSerial.Internal;
 
+using DotSerial.Abstractions;
+using DotSerial.Config;
+using DotSerial.Models;
 using Microsoft.Extensions.Logging;
 
 /// <summary>
 /// Abstract base class that provides shared boilerplate for all platform-specific
-/// <see cref="Abstractions.ISerialPort"/> implementations.
+/// <see cref="ISerialPort"/> implementations.
 /// </summary>
 /// <remarks>
 /// Derived classes must implement the core low-level operations (<see cref="Open"/>,
@@ -25,67 +28,67 @@ using Microsoft.Extensions.Logging;
 /// (<see cref="ReadLine"/>, <see cref="ReadExisting"/>, <see cref="Write(string)"/>, etc.)
 /// built on top of those primitives.
 /// </remarks>
-internal abstract class SerialPortBase : Abstractions.ISerialPort
+internal abstract class SerialPortBase : ISerialPort
 {
     private static readonly System.Text.Encoding Encoding = System.Text.Encoding.UTF8;
     private static readonly string NewLine = "\n";
 
     /// <summary>The port configuration settings.</summary>
-    protected readonly Models.SerialPortSettings _settings;
+    protected readonly SerialPortConfig _config;
 
     /// <summary>The logger instance for diagnostic output.</summary>
     protected readonly ILogger _logger;
-
-    private bool _disposed;
+    
     private int _readTimeout;
     private int _writeTimeout;
+    private bool _disposed;
 
     /// <summary>
     /// Initializes a new instance of <see cref="SerialPortBase"/> with the given settings and logger.
     /// </summary>
-    /// <param name="settings">The serial port configuration settings.</param>
+    /// <param name="config">The serial port configuration settings.</param>
     /// <param name="logger">The logger instance.</param>
-    protected SerialPortBase(Models.SerialPortSettings settings, ILogger logger)
+    protected SerialPortBase(SerialPortConfig config, ILogger logger)
     {
-        ArgumentNullException.ThrowIfNull(settings);
+        ArgumentNullException.ThrowIfNull(config);
         ArgumentNullException.ThrowIfNull(logger);
-        settings.Validate();
-        _settings = settings;
+        config.Validate();
+        _config = config;
         _logger = logger;
-        _readTimeout = settings.ReadTimeout;
-        _writeTimeout = settings.WriteTimeout;
+        _readTimeout = config.ReadTimeout;
+        _writeTimeout = config.WriteTimeout;
     }
 
     // ── ISerialPort – Properties ──────────────────────────────────────────
 
     /// <inheritdoc/>
-    public string PortName => _settings.PortName;
+    public string PortName => _config.PortName;
 
     /// <inheritdoc/>
-    public int BaudRate => _settings.BaudRate;
+    public BaudRate BaudRate => _config.BaudRate;
 
     /// <inheritdoc/>
-    public Enums.Parity Parity => _settings.Parity;
+    public Parity Parity => _config.Parity;
 
     /// <inheritdoc/>
-    public int DataBits => _settings.DataBits;
+    public int DataBits => _config.DataBits;
 
     /// <inheritdoc/>
-    public Enums.StopBits StopBits => _settings.StopBits;
+    public StopBits StopBits => _config.StopBits;
 
     /// <inheritdoc/>
-    public Enums.FlowControl FlowControl => _settings.FlowControl;
+    public FlowControl FlowControl => _config.FlowControl;
 
     /// <inheritdoc/>
-    public int ReadTimeout
-    {
+    public int ReadTimeout 
+    { 
         get => _readTimeout;
         set => _readTimeout = value;
     }
 
     /// <inheritdoc/>
-    public int WriteTimeout
-    {
+    public int WriteTimeout 
+    { 
         get => _writeTimeout;
         set => _writeTimeout = value;
     }
@@ -105,13 +108,13 @@ internal abstract class SerialPortBase : Abstractions.ISerialPort
     // ── Events ────────────────────────────────────────────────────────────
 
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialDataReceivedEventArgs>? DataReceived;
+    public event EventHandler<SerialDataReceivedEventArgs>? DataReceived;
 
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialErrorReceivedEventArgs>? ErrorReceived;
+    public event EventHandler<SerialErrorReceivedEventArgs>? ErrorReceived;
 
     /// <inheritdoc/>
-    public event EventHandler<Models.SerialPinChangedEventArgs>? PinChanged;
+    public event EventHandler<SerialPinChangedEventArgs>? PinChanged;
 
     // ── Abstract operations ───────────────────────────────────────────────
 
@@ -185,18 +188,18 @@ internal abstract class SerialPortBase : Abstractions.ISerialPort
     // ── Default Read implementations ──────────────────────────────────────
 
     /// <inheritdoc/>
-    public string ReadExisting()
+    public byte[] ReadExisting()
     {
         ThrowIfNotOpen();
         int available = BytesToRead;
         if (available <= 0)
         {
-            return string.Empty;
+            return Array.Empty<byte>();
         }
 
         var buffer = new byte[available];
         int read = Read(buffer, 0, available);
-        return Encoding.GetString(buffer, 0, read);
+        return read < available ? buffer.AsSpan(0, read).ToArray() : buffer;
     }
 
     /// <inheritdoc/>

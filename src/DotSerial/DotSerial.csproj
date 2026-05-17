@@ -32,6 +32,11 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <Compile Remove="Decorators\ThrottledSerialPort.cs" />
+    <Compile Remove="Decorators\ThrottledSerialPortLog.cs" />
+  </ItemGroup>
+
+  <ItemGroup>
     <None Include="..\..\README.md" Pack="true" PackagePath="\" />
   </ItemGroup>
 
@@ -58,28 +63,41 @@
 
   <!-- Exclude platform-specific files from wrong targets -->
   <ItemGroup Condition="'$(TargetFramework)' != 'net10.0'">
-    <Compile Remove="Internal\Desktop\DesktopSerialPort.cs" />
-    <Compile Remove="Internal\Desktop\DesktopSerialPortLog.cs" />
-    <Compile Remove="Internal\Desktop\DesktopSerialPortMonitor.cs" />
-    <Compile Remove="Internal\Desktop\DesktopSerialPortMonitorLog.cs" />
+    <Compile Remove="Internal\Windows\DesktopSerialPort.cs" />
+    <Compile Remove="Internal\Windows\DesktopSerialPortLog.cs" />
+    <Compile Remove="Internal\Windows\DesktopSerialPortMonitor.cs" />
+    <Compile Remove="Internal\Windows\DesktopSerialPortMonitorLog.cs" />
     <Compile Remove="Internal\Linux\LinuxSerialPortMonitor.cs" />
     <Compile Remove="Internal\Linux\LinuxSerialPortMonitorLog.cs" />
     <Compile Remove="Internal\MacOS\MacOSSerialPortMonitor.cs" />
     <Compile Remove="Internal\MacOS\MacOSSerialPortMonitorLog.cs" />
+    <Compile Remove="Internal\Network\NetworkSerialPort.cs" />
+    <Compile Remove="Internal\Network\NetworkSerialPortLog.cs" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-android'">
-    <Compile Remove="Internal\Android\AndroidSerialPort.cs" />
-    <Compile Remove="Internal\Android\AndroidBluetoothSerialPort.cs" />
-    <Compile Remove="Internal\Android\AndroidSerialPortLog.cs" />
-    <Compile Remove="Internal\Android\AndroidSerialPortMonitor.cs" />
-    <Compile Remove="Internal\Android\AndroidSerialPortMonitorLog.cs" />
+
+  <!-- Exclude Android/iOS from net10.0 desktop targets -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0'">
+    <Compile Remove="Internal\Android\**\*.cs" />
+    <Compile Remove="Internal\iOS\**\*.cs" />
   </ItemGroup>
-  <ItemGroup Condition="'$(TargetFramework)' != 'net10.0-ios'">
-    <Compile Remove="Internal\iOS\iOSSerialPort.cs" />
-    <Compile Remove="Internal\iOS\iOSBluetoothSerialPort.cs" />
-    <Compile Remove="Internal\iOS\iOSSerialPortLog.cs" />
-    <Compile Remove="Internal\iOS\iOSSerialPortMonitor.cs" />
-    <Compile Remove="Internal\iOS\iOSSerialPortMonitorLog.cs" />
+
+  <!-- Exclude desktop platforms from Android -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-android'">
+    <Compile Remove="Internal\Windows\**\*.cs" />
+    <Compile Remove="Internal\Linux\**\*.cs" />
+    <Compile Remove="Internal\MacOS\**\*.cs" />
+    <Compile Remove="Internal\iOS\**\*.cs" />
+  </ItemGroup>
+
+  <!-- Exclude desktop platforms from iOS -->
+  <ItemGroup Condition="'$(TargetFramework)' == 'net10.0-ios'">
+    <Compile Remove="Internal\Windows\**\*.cs" />
+    <Compile Remove="Internal\Linux\**\*.cs" />
+    <Compile Remove="Internal\MacOS\**\*.cs" />
+    <Compile Remove="Internal\Android\**\*.cs" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="Decorators\" />
   </ItemGroup>
 
 </Project>

@@ -12,8 +12,8 @@
 
 namespace DotSerial.Tests.Unit;
 
+using DotSerial.Config;
 using DotSerial.Exceptions;
-using DotSerial.Models;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using NUnit.Framework;
@@ -49,18 +49,18 @@ public sealed class SerialPortFactoryTests
     }
 
     [Test]
-    public void Create_InvalidSettings_EmptyPortName_ThrowsSerialPortException()
+    public void Create_InvalidSettings_EmptyPortName_ThrowsArgumentException()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        var settings = new SerialPortSettings { PortName = "" };
-        Assert.Throws<SerialPortException>(() => factory.Create(settings));
+        var settings = new SerialPortConfig { PortName = "" };
+        Assert.Throws<ArgumentException>(() => factory.Create(settings));
     }
 
     [Test]
     public void Create_ValidSettings_ReturnsNonNullISerialPort()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        var settings = new SerialPortSettings { PortName = "COM1" };
+        var settings = new SerialPortConfig { PortName = "COM1" };
         var port = factory.Create(settings);
         Assert.That(port, Is.Not.Null);
         port.Dispose();
@@ -70,8 +70,8 @@ public sealed class SerialPortFactoryTests
     public void Create_MultipleValidSettings_ReturnsIndependentPorts()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        var settings1 = new SerialPortSettings { PortName = "COM1" };
-        var settings2 = new SerialPortSettings { PortName = "COM2" };
+        var settings1 = new SerialPortConfig { PortName = "COM1" };
+        var settings2 = new SerialPortConfig { PortName = "COM2" };
         var port1 = factory.Create(settings1);
         var port2 = factory.Create(settings2);
         Assert.That(port1, Is.Not.SameAs(port2));
@@ -108,10 +108,10 @@ public sealed class SerialPortFactoryTests
     public void Create_BluetoothConnectionType_OnDesktop_ThrowsPlatformNotSupportedException()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        var settings = new DotSerial.Models.SerialPortSettings
+        var settings = new SerialPortConfig
         {
             PortName = "BT-Device",
-            ConnectionType = Enums.ConnectionType.Bluetooth,
+            ConnectionType = ConnectionType.Bluetooth,
             BluetoothAddress = "00:11:22:33:44:55",
         };
         Assert.Throws<PlatformNotSupportedException>(() => factory.Create(settings));
@@ -130,7 +130,7 @@ public sealed class SerialPortFactoryTests
     public void CreateStream_ValidSettings_ReturnsNonNull()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        using var stream = factory.CreateStream(new DotSerial.Models.SerialPortSettings { PortName = "COM1" });
+        using var stream = factory.CreateStream(new SerialPortConfig { PortName = "COM1" });
         Assert.That(stream, Is.Not.Null);
     }
 
@@ -138,16 +138,16 @@ public sealed class SerialPortFactoryTests
     public void CreateStream_ValidSettings_PortNameMatchesSettings()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        using var stream = factory.CreateStream(new DotSerial.Models.SerialPortSettings { PortName = "COM5" });
+        using var stream = factory.CreateStream(new SerialPortConfig { PortName = "COM5" });
         Assert.That(stream.SerialPort.PortName, Is.EqualTo("COM5"));
     }
 
     [Test]
-    public void CreateStream_InvalidSettings_ThrowsSerialPortException()
+    public void CreateStream_InvalidSettings_ThrowsArgumentException()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        Assert.Throws<SerialPortException>(() =>
-            factory.CreateStream(new DotSerial.Models.SerialPortSettings { PortName = "" }));
+        Assert.Throws<ArgumentException>(() =>
+            factory.CreateStream(new SerialPortConfig { PortName = "" }));
     }
 
     // ── OpenAsync / CloseAsync (not connected) ───────────────────────────
@@ -157,7 +157,7 @@ public sealed class SerialPortFactoryTests
     {
         var factory = new SerialPortFactory(_loggerFactory);
         // Use a port name that is very unlikely to exist on any machine.
-        using var port = factory.Create(new DotSerial.Models.SerialPortSettings { PortName = "COM249" });
+        using var port = factory.Create(new SerialPortConfig { PortName = "COM249" });
         Assert.ThrowsAsync<SerialPortNotFoundException>(async () =>
             await port.OpenAsync(CancellationToken.None));
     }
@@ -166,7 +166,7 @@ public sealed class SerialPortFactoryTests
     public void CloseAsync_WhenNotOpen_DoesNotThrow()
     {
         var factory = new SerialPortFactory(_loggerFactory);
-        using var port = factory.Create(new DotSerial.Models.SerialPortSettings { PortName = "COM1" });
+        using var port = factory.Create(new SerialPortConfig { PortName = "COM1" });
         Assert.DoesNotThrowAsync(async () =>
             await port.CloseAsync(CancellationToken.None));
     }

@@ -15,7 +15,7 @@ namespace DotSerial.Tests.Integration;
 
 using System.Net;
 using System.Net.Sockets;
-using DotSerial.Enums;
+using DotSerial.Config;
 using DotSerial.Models;
 using Microsoft.Extensions.Logging;
 using NUnit.Framework;
@@ -50,7 +50,7 @@ public sealed class NetworkSerialPortIntegrationTests
         _listener.Stop();
     }
 
-    private SerialPortSettings NetworkSettings() =>
+    private SerialPortConfig NetworkSettings() =>
         new()
         {
             PortName = $"127.0.0.1:{_port}",

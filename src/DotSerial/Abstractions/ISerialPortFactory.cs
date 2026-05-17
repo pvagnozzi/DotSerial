@@ -10,6 +10,9 @@
 // <created>2026-05-01</created>
 // -----------------------------------------------------------------------
 
+using DotSerial.Config;
+using DotSerial.Models;
+
 namespace DotSerial.Abstractions;
 
 /// <summary>
@@ -18,10 +21,10 @@ namespace DotSerial.Abstractions;
 /// </summary>
 public interface ISerialPortFactory
 {
-    /// <summary>Creates a new <see cref="ISerialPort"/> configured with <paramref name="settings"/>.</summary>
-    /// <param name="settings">The serial port configuration settings.</param>
+    /// <summary>Creates a new <see cref="ISerialPort"/> configured with <paramref name="config"/>.</summary>
+    /// <param name="config">The serial port configuration settings.</param>
     /// <returns>A new <see cref="ISerialPort"/> instance.</returns>
-    ISerialPort Create(Models.SerialPortSettings settings);
+    ISerialPort Create(SerialPortConfig config);
 
     /// <summary>Returns all serial port names available on this platform.</summary>
     /// <returns>A read-only list of available port names.</returns>
@@ -39,10 +42,10 @@ public interface ISerialPortFactory
 
     /// <summary>
     /// Creates a new <see cref="ISerialPortStream"/> wrapping a port configured with
-    /// <paramref name="settings"/>. The underlying port is created via
+    /// <paramref name="config"/>. The underlying port is created via
     /// <see cref="Create"/> and is owned by the returned stream wrapper.
     /// </summary>
-    /// <param name="settings">The serial port configuration settings.</param>
+    /// <param name="config">The serial port configuration settings.</param>
     /// <returns>A new <see cref="ISerialPortStream"/> backed by the configured port.</returns>
-    ISerialPortStream CreateStream(Models.SerialPortSettings settings);
+    ISerialPortStream CreateStream(SerialPortConfig config);
 }
